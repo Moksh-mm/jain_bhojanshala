@@ -5,6 +5,18 @@ import { log } from '@/lib/logger'
 import { serializeBhojanshala } from '@/lib/serialize'
 import type { CreateBhojanshalaBody } from '@/types'
 
+export async function GET(request: NextRequest) {
+  const auth = await requireSuperAdmin(request)
+  if (isAuthError(auth)) return auth
+
+  const bhojanshalas = await prisma.bhojanshala.findMany({
+    orderBy: [{ cityEnglish: 'asc' }, { nameEnglish: 'asc' }],
+    include: { admins: true },
+  })
+
+  return NextResponse.json({ data: bhojanshalas.map(serializeBhojanshala) })
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireSuperAdmin(request)
   if (isAuthError(auth)) return auth

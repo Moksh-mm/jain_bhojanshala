@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../utils/supabase/client'
+import { auth as authApi, getToken, clearTokens } from '../lib/api'
 
 const AuthContext = createContext(null)
 
@@ -9,80 +9,48 @@ export const useAuth = () => {
   return ctx
 }
 
-async function fetchProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*, bhojanshalas(id, name_en, name_gu, city_en, city_gu)')
-    .eq('id', userId)
-    .single()
-  if (error) return null
-  return data
-}
-
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(null)
-  const [profile, setProfile] = useState(null)
+  const [user,    setUser]    = useState(null)  // API user object (includes role, bhojanshalaId)
   const [loading, setLoading] = useState(true)
 
+  // Hydrate from existing JWT on mount
   useEffect(() => {
-    // Hydrate from existing session on mount
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        const p = await fetchProfile(session.user.id)
-        setProfile(p)
-      }
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          const p = await fetchProfile(session.user.id)
-          setProfile(p)
-        } else {
-          setProfile(null)
-        }
-        setLoading(false)
-      }
-    )
-    return () => subscription.unsubscribe()
+    if (!getToken()) { setLoading(false); return }
+    authApi.me()
+      .then(({ data }) => setUser(data))
+      .catch(() => clearTokens())
+      .finally(() => setLoading(false))
   }, [])
 
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    return data
-  }
-
-  // Register is used by new admins who were pre-registered by Super Admin
-  const register = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
+    const data = await authApi.login(email, password)  // stores token in localStorage
+    setUser(data.user)
     return data
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    await authApi.logout()
     setUser(null)
-    setProfile(null)
   }
 
-  const refreshProfile = async () => {
-    if (!user) return
-    const p = await fetchProfile(user.id)
-    setProfile(p)
+  const refreshUser = async () => {
+    try {
+      const { data } = await authApi.me()
+      setUser(data)
+    } catch {
+      clearTokens()
+      setUser(null)
+    }
   }
 
-  const isSuperAdmin = profile?.role === 'super_admin'
-  const isAdmin      = profile?.role === 'admin'
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+  const isAdmin      = user?.role === 'ADMIN'
 
   return (
     <AuthContext.Provider value={{
-      user, profile, loading,
+      user, loading,
       isSuperAdmin, isAdmin,
-      signIn, register, signOut, refreshProfile,
+      signIn, signOut, refreshUser,
     }}>
       {children}
     </AuthContext.Provider>

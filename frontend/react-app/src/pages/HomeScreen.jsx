@@ -1,19 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  BHOJ, FOODS, SMART_FOODS,
-  computeStatus, bhojServesFoodOnDay, foodCountsForDay, L, tr
+  FOODS, SMART_FOODS,
+  computeStatus, servesTodayFood, foodCountsForList, minPriceToday,
+  bhojName, bhojArea, bhojCity, bhojNotice,
+  L, tr
 } from '../data/data';
 import {
   Icon, StatusBadge, Stars, Money, Chip, FoodTag,
   MealTriple, ActionBtn, LangSwitch, ImagePlaceholder
 } from '../components/shared';
 import { useCountUp } from '../hooks/useCountUp';
+import { publicApi } from '../lib/api';
 
 const QUICK_CHIPS = [
   { key: 'open',        emoji: '🟢', gu: 'હમણાં ખુલ્લું', en: 'Open now' },
-  { key: 'breakfast',   emoji: '🍵', gu: 'સવારે',          en: 'Breakfast' },
+  { key: 'breakfast',   emoji: '🍵', gu: 'નવકારશી',         en: 'Navkarshi' },
   { key: 'lunch',       emoji: '🍛', gu: 'બપોરે',           en: 'Lunch' },
-  { key: 'dinner',      emoji: '🌙', gu: 'સાંજે',           en: 'Dinner' },
+  { key: 'dinner',      emoji: '🌙', gu: 'ચોવિહાર',         en: 'Chovihar' },
   { key: 'dharamshala', emoji: '🛏️', gu: 'ધર્મશાળા',       en: 'Dharamshala' },
   { key: 'tiffin',      emoji: '🥡', gu: 'ટિફિન',           en: 'Tiffin' },
   { key: 'free',        emoji: '💰', gu: 'નિ:શુલ્ક',        en: 'Free' },
@@ -21,29 +24,17 @@ const QUICK_CHIPS = [
 ];
 
 const SORTS = [
-  { key: 'near',   gu: 'નજીકના',       en: 'Nearest' },
-  { key: 'price',  gu: 'ઓછી કિંમત',   en: 'Lowest price' },
-  { key: 'rating', gu: 'ઉચ્ચ રેટિંગ',  en: 'Highest rated' },
-  { key: 'open',   gu: 'હમણાં ખુલ્લું', en: 'Open now' },
+  { key: 'name',    gu: 'A-Z ક્રમ',       en: 'A-Z order' },
+  { key: 'price',   gu: 'ઓછી કિંમત',      en: 'Lowest price' },
+  { key: 'rating',  gu: 'ઉચ્ચ રેટિંગ',    en: 'Highest rated' },
+  { key: 'open',    gu: 'હમણાં ખુલ્લું',   en: 'Open now' },
 ];
 
-function todayMeals(b, today) {
-  const day = b.week[today];
-  if (!day || day.closed) return {};
-  return day.meals || {};
-}
-function minPriceToday(b, today) {
-  const m = todayMeals(b, today);
-  const ps = Object.values(m).filter((x) => x.available).map((x) => x.price);
-  return ps.length ? Math.min(...ps) : Infinity;
-}
-
-function BhojCard({ b, lang, today, onOpen }) {
-  const status = computeStatus(b, today);
-  const day = b.week[today];
-  const closed = !day || day.closed;
-  const m = todayMeals(b, today);
-  const lunchItems = (m.lunch?.available && m.lunch.items) || (m.breakfast?.items) || [];
+function BhojCard({ b, lang, onOpen }) {
+  const status    = computeStatus(b.todaySchedule);
+  const meals     = b.todaySchedule?.meals ?? {};
+  const notice    = bhojNotice(b, lang);
+  const lunchItems = meals.lunch?.items || meals.breakfast?.items || [];
 
   return (
     <article className="card" onClick={() => onOpen(b.id)}>
@@ -54,29 +45,26 @@ function BhojCard({ b, lang, today, onOpen }) {
         />
         <div className="card-photo-top">
           <StatusBadge status={status} lang={lang} />
-          <span className="dist-pill">
-            <Icon name="pin" size={12} stroke={2.2} />{b.dist} {L('km', lang)}
-          </span>
         </div>
-        {b.notice && <div className="card-notice-strip">⚠ {tr(b.notice, lang)}</div>}
+        {notice && <div className="card-notice-strip">⚠ {notice}</div>}
       </div>
 
       <div className="card-body">
         <div className="card-head">
           <div>
-            <h3 className="card-name">{tr(b.name, lang)}</h3>
-            <p className="card-area">{tr(b.area, lang)} · {tr(b.city, lang)}</p>
+            <h3 className="card-name">{bhojName(b, lang)}</h3>
+            <p className="card-area">{bhojArea(b, lang)} · {bhojCity(b, lang)}</p>
           </div>
           <Stars value={b.rating} />
         </div>
 
-        <MealTriple day={day || { closed: true }} lang={lang} />
+        <MealTriple todaySchedule={b.todaySchedule} lang={lang} />
 
-        {!closed && (
+        {!b.todaySchedule?.isClosed && (
           <div className="card-prices">
             {['breakfast', 'lunch', 'dinner'].map((k) => {
-              const meal = m[k];
-              const ok = meal?.available;
+              const meal = meals[k];
+              const ok   = meal?.available;
               return (
                 <div key={k} className={'pr-col' + (ok ? '' : ' pr-off')}>
                   <span className="pr-label">{L(k, lang)}</span>
@@ -87,9 +75,9 @@ function BhojCard({ b, lang, today, onOpen }) {
           </div>
         )}
 
-        {!closed && lunchItems.length > 0 && (
+        {lunchItems.length > 0 && (
           <div className="menu-preview">
-            {lunchItems.slice(0, 4).map((k) => (
+            {lunchItems.slice(0, 4).map((k) => FOODS[k] && (
               <span key={k} className="menu-chip">{FOODS[k].emoji} {tr(FOODS[k], lang)}</span>
             ))}
           </div>
@@ -105,46 +93,58 @@ function BhojCard({ b, lang, today, onOpen }) {
   );
 }
 
-export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
-  const [chips, setChips] = useState(new Set());
-  const [food, setFood]   = useState(null);
-  const [sort, setSort]   = useState('near');
-  const [city, setCity]   = useState('');
+export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
+  const [bhojanshalas, setBhojanshalas] = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+
+  const [chips,    setChips]    = useState(new Set());
+  const [food,     setFood]     = useState(null);
+  const [sort,     setSort]     = useState('name');
+  const [city,     setCity]     = useState('');
   const [sortOpen, setSortOpen] = useState(false);
 
-  const counts = useMemo(() => foodCountsForDay(today), [today]);
+  useEffect(() => {
+    publicApi.getBhojanshalas({ today: 'true' })
+      .then(res => setBhojanshalas(res.data || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const counts = useMemo(() => foodCountsForList(bhojanshalas), [bhojanshalas]);
   const toggleChip = (k) =>
     setChips((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
   const results = useMemo(() => {
-    let list = BHOJ.slice();
-    if (food) list = list.filter((b) => bhojServesFoodOnDay(b, food, today));
-    if (chips.has('open'))        list = list.filter((b) => computeStatus(b, today) === 'open');
-    if (chips.has('breakfast'))   list = list.filter((b) => todayMeals(b, today).breakfast?.available);
-    if (chips.has('lunch'))       list = list.filter((b) => todayMeals(b, today).lunch?.available);
-    if (chips.has('dinner'))      list = list.filter((b) => todayMeals(b, today).dinner?.available);
-    if (chips.has('dharamshala')) list = list.filter((b) => b.dharamshala);
-    if (chips.has('tiffin'))      list = list.filter((b) => b.tiffin.available);
-    if (chips.has('free'))        list = list.filter((b) => Object.values(todayMeals(b, today)).some((x) => x.available && x.price === 0));
-    if (chips.has('under100'))    list = list.filter((b) => minPriceToday(b, today) < 100);
+    let list = bhojanshalas.slice();
+    if (food) list = list.filter(b => servesTodayFood(b, food));
+    if (chips.has('open'))        list = list.filter(b => computeStatus(b.todaySchedule) === 'open');
+    if (chips.has('breakfast'))   list = list.filter(b => b.todaySchedule?.meals.breakfast?.available);
+    if (chips.has('lunch'))       list = list.filter(b => b.todaySchedule?.meals.lunch?.available);
+    if (chips.has('dinner'))      list = list.filter(b => b.todaySchedule?.meals.dinner?.available);
+    if (chips.has('dharamshala')) list = list.filter(b => b.facilities?.dharamshalaAvailable);
+    if (chips.has('tiffin'))      list = list.filter(b => b.tiffin?.available);
+    if (chips.has('free'))        list = list.filter(b =>
+      ['breakfast','lunch','dinner'].some(k => b.todaySchedule?.meals[k]?.available && b.todaySchedule.meals[k].price === 0)
+    );
+    if (chips.has('under100'))    list = list.filter(b => minPriceToday(b) < 100);
     if (city.trim()) {
       const q = city.trim().toLowerCase();
-      list = list.filter((b) =>
-        tr(b.city, lang).toLowerCase().includes(q) ||
-        tr(b.city, 'en').toLowerCase().includes(q)  ||
-        tr(b.area, lang).toLowerCase().includes(q)
+      list = list.filter(b =>
+        b.cityEnglish?.toLowerCase().includes(q) ||
+        b.cityGujarati?.toLowerCase().includes(q) ||
+        b.areaEnglish?.toLowerCase().includes(q)
       );
     }
     const ord = { open: 0, soon: 1, closed: 2 };
     list.sort((a, b) => {
-      if (sort === 'near')   return a.dist - b.dist;
-      if (sort === 'price')  return minPriceToday(a, today) - minPriceToday(b, today);
+      if (sort === 'price')  return minPriceToday(a) - minPriceToday(b);
       if (sort === 'rating') return b.rating - a.rating;
-      if (sort === 'open')   return ord[computeStatus(a, today)] - ord[computeStatus(b, today)];
-      return 0;
+      if (sort === 'open')   return ord[computeStatus(a.todaySchedule)] - ord[computeStatus(b.todaySchedule)];
+      return (a.nameEnglish || '').localeCompare(b.nameEnglish || '');
     });
     return list;
-  }, [chips, food, sort, city, today, lang]);
+  }, [bhojanshalas, chips, food, sort, city]);
 
   const resultCount = useCountUp(results.length, 500);
 
@@ -158,7 +158,6 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
           <span className="brand-name">{L('appName', lang)}</span>
         </div>
 
-        {/* Desktop navigation links – hidden on mobile via CSS */}
         <nav className="desktop-nav" aria-label="Site navigation">
           <a href="#" className="dnav-link dnav-active">{L('navHome', lang)}</a>
           <a href="#" className="dnav-link">{L('navMap', lang)}</a>
@@ -174,13 +173,11 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
         </div>
       </header>
 
-      {/* ═══════════════ HOME LAYOUT (sidebar + content) ═══════════════ */}
+      {/* ═══════════════ HOME LAYOUT ═══════════════ */}
       <div className="home-layout">
 
-        {/* ── LEFT SIDEBAR (search / filters) ── */}
+        {/* LEFT SIDEBAR */}
         <aside className="home-sidebar">
-
-          {/* Hero + search */}
           <section className="hero sidebar-hero">
             <h1 className="hero-title">{L('heroTitle', lang)}</h1>
             <p className="hero-sub">{L('heroSub', lang)}</p>
@@ -200,19 +197,12 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
                   </button>
                 )}
               </div>
-              <button
-                className="loc-row"
-                onClick={() => setCity(lang === 'gu' ? 'પાલીતાણા' : 'Palitana')}>
-                <span className="loc-dot"><Icon name="nav" size={14} stroke={2.2} fill /></span>
-                {L('useLocation', lang)}
-              </button>
               <button className="search-btn">
                 <Icon name="search" size={19} stroke={2.4} />{L('search', lang)}
               </button>
             </div>
           </section>
 
-          {/* Quick filter chips */}
           <section className="sidebar-block">
             <div className="chip-scroll">
               {QUICK_CHIPS.map((c) => (
@@ -223,7 +213,6 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
             </div>
           </section>
 
-          {/* Smart food finder */}
           <section className="sidebar-block smart">
             <div className="smart-head">
               <div>
@@ -247,14 +236,12 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
           <div className="sidebar-pad" />
         </aside>
 
-        {/* ── RIGHT MAIN CONTENT (results + cards) ── */}
+        {/* RIGHT CONTENT */}
         <main className="home-content">
-
-          {/* Results header + sort */}
           <div className="results-bar">
             <h2 className="block-title">
               {L('resultsNear', lang)}
-              <span className="result-count">{resultCount}</span>
+              {!loading && <span className="result-count">{resultCount}</span>}
             </h2>
             <div className="sort-wrap">
               <button className="sort-btn" onClick={() => setSortOpen((o) => !o)}>
@@ -277,28 +264,37 @@ export default function HomeScreen({ lang, setLang, today, onOpen, onAdmin }) {
             </div>
           </div>
 
-          {/* Active food banner */}
           {food && (
             <div className="active-food-banner">
               <span>{FOODS[food].emoji} {tr(FOODS[food], lang)}</span>
-              <span className="afb-count">{counts[food]} {L('resultsNear', lang).split(' ').slice(-1)}</span>
+              <span className="afb-count">{counts[food]} {lang === 'gu' ? 'ભોજનશાળા' : 'bhojanshalas'}</span>
             </div>
           )}
 
-          {/* Cards grid */}
           <section className="cards">
-            {results.length === 0 && (
+            {loading && (
               <div className="empty-state">
-                <Icon name="search" size={32} stroke={1.6} />
-                <p>{lang === 'gu' ? 'કોઈ ભોજનશાળા મળી નથી' : 'No bhojanshalas found'}</p>
+                <div className="loading-spinner" />
+                <p>{L('loading', lang)}</p>
               </div>
             )}
-            {results.map((b) => (
-              <BhojCard key={b.id} b={b} lang={lang} today={today} onOpen={onOpen} />
+            {!loading && error && (
+              <div className="empty-state">
+                <Icon name="info" size={32} stroke={1.6} />
+                <p>{lang === 'gu' ? 'ડેટા લોડ ન થઈ શક્યો' : 'Could not load data'}</p>
+              </div>
+            )}
+            {!loading && !error && results.length === 0 && (
+              <div className="empty-state">
+                <Icon name="search" size={32} stroke={1.6} />
+                <p>{L('noResults', lang)}</p>
+              </div>
+            )}
+            {!loading && results.map((b) => (
+              <BhojCard key={b.id} b={b} lang={lang} onOpen={onOpen} />
             ))}
           </section>
 
-          {/* Footer */}
           <footer className="app-footer">
             <div className="footer-links">
               <a href="#">{L('about', lang)}</a>

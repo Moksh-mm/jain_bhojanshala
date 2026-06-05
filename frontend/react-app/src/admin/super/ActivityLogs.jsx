@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../utils/supabase/client'
+import { superAdmin } from '../../lib/api'
 
 export default function ActivityLogs() {
   const [logs,    setLogs]    = useState([])
+  const [total,   setTotal]   = useState(0)
   const [loading, setLoading] = useState(true)
-  const [filter,  setFilter]  = useState('')
+  const [search,  setSearch]  = useState('')
   const [page,    setPage]    = useState(0)
   const PAGE_SIZE = 25
 
@@ -12,30 +13,21 @@ export default function ActivityLogs() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase
-      .from('activity_logs')
-      .select('*, profiles(name, role)')
-      .order('created_at', { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-    setLogs(data || [])
-    setLoading(false)
+    try {
+      const res = await superAdmin.getActivity({ page, limit: PAGE_SIZE, search })
+      setLogs(res.data || [])
+      setTotal(res.total || 0)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const filtered = filter
-    ? logs.filter(l =>
-        l.action?.toLowerCase().includes(filter.toLowerCase()) ||
-        l.profiles?.name?.toLowerCase().includes(filter.toLowerCase()) ||
-        l.details?.bhojanshala_name?.toLowerCase().includes(filter.toLowerCase())
-      )
-    : logs
-
-  const fmt = (ts) => {
-    const d = new Date(ts)
-    return d.toLocaleString('en-IN', {
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    })
-  }
+  const fmt = (ts) => new Date(ts).toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 
   return (
     <div>
@@ -48,8 +40,11 @@ export default function ActivityLogs() {
         <div className="a-search-wrap">
           <span className="a-search-icon">🔍</span>
           <input
-            className="a-input" placeholder="Search by admin, action or bhojanshala…"
-            value={filter} onChange={e => setFilter(e.target.value)}
+            className="a-input"
+            placeholder="Search by admin, action or bhojanshala…"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(0) }}
+            onKeyDown={e => e.key === 'Enter' && load()}
           />
         </div>
       </div>
@@ -57,7 +52,7 @@ export default function ActivityLogs() {
       <div className="a-card">
         {loading ? (
           <div className="a-inline-loading"><div className="a-spinner" /></div>
-        ) : filtered.length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="a-empty">
             <div className="a-empty-icon">📋</div>
             <p>No logs found</p>
@@ -75,29 +70,23 @@ export default function ActivityLogs() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(log => (
+                {logs.map(log => (
                   <tr key={log.id}>
                     <td style={{ whiteSpace: 'nowrap', color: '#64748b', fontSize: 12 }}>
-                      {fmt(log.created_at)}
+                      {fmt(log.createdAt)}
                     </td>
                     <td>
-                      <div className="a-cell-main">{log.profiles?.name || '—'}</div>
+                      <div className="a-cell-main">{log.user?.name || '—'}</div>
                       <div className="a-cell-sub">
-                        <span className={`a-badge ${log.profiles?.role === 'super_admin' ? 'a-badge-purple' : 'a-badge-blue'}`}>
-                          {log.profiles?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        <span className={`a-badge ${log.user?.role === 'SUPER_ADMIN' ? 'a-badge-purple' : 'a-badge-blue'}`}>
+                          {log.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
                         </span>
                       </div>
                     </td>
                     <td style={{ fontWeight: 500 }}>{log.action}</td>
-                    <td style={{ color: '#475569' }}>{log.details?.bhojanshala_name || log.bhojanshala_id || '—'}</td>
+                    <td style={{ color: '#475569' }}>{log.bhojanshala?.nameEnglish || '—'}</td>
                     <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 240 }}>
-                      {log.details && Object.keys(log.details).filter(k => k !== 'bhojanshala_name').length > 0
-                        ? Object.entries(log.details)
-                            .filter(([k]) => k !== 'bhojanshala_name')
-                            .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-                            .join(', ')
-                        : '—'
-                      }
+                      {log.description || '—'}
                     </td>
                   </tr>
                 ))}
@@ -107,15 +96,17 @@ export default function ActivityLogs() {
         )}
       </div>
 
-      {/* Pagination */}
-      <div className="a-row" style={{ justifyContent: 'center', marginTop: 16, gap: 8 }}>
-        <button className="a-btn a-btn-secondary a-btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-          ← Prev
-        </button>
-        <span style={{ fontSize: 13, color: '#64748b' }}>Page {page + 1}</span>
-        <button className="a-btn a-btn-secondary a-btn-sm" disabled={logs.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
-          Next →
-        </button>
+      <div className="a-row" style={{ justifyContent: 'space-between', marginTop: 16, alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: '#64748b' }}>{total} total logs</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="a-btn a-btn-secondary a-btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+            ← Prev
+          </button>
+          <span style={{ fontSize: 13, color: '#64748b', padding: '6px 0' }}>Page {page + 1}</span>
+          <button className="a-btn a-btn-secondary a-btn-sm" disabled={logs.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+            Next →
+          </button>
+        </div>
       </div>
     </div>
   )

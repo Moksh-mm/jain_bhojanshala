@@ -3,6 +3,7 @@ import { requireAdminRole, isAuthError } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { log } from '@/lib/logger'
 import { buildTimeline } from '@/lib/serialize'
+import type { MealType } from '@prisma/client'
 
 // GET /api/admin/schedule?days=7
 export async function GET(request: NextRequest) {
@@ -26,15 +27,13 @@ export async function GET(request: NextRequest) {
       date: { gte: today, lt: until },
     },
     orderBy: { date: 'asc' },
-    include: {
-      meals: { include: { foodItems: true } },
-    },
+    include: { meals: { include: { foodItems: true } } },
   })
 
   return NextResponse.json({ data: buildTimeline(schedules, days) })
 }
 
-// PUT /api/admin/schedule  — upsert a single day
+// PUT /api/admin/schedule  — upsert a single day's schedule + meals
 export async function PUT(request: NextRequest) {
   const auth = await requireAdminRole(request)
   if (isAuthError(auth)) return auth
@@ -44,18 +43,16 @@ export async function PUT(request: NextRequest) {
   }
 
   let body: {
-    date: string           // ISO date: "2025-08-10"
-    isClosed?: boolean
-    noticeEnglish?: string
-    noticeGujarati?: string
+    date:           string        // ISO date string: "2025-08-10"
+    isClosed?:      boolean
+    specialNotice?: string | null
     meals?: Array<{
-      mealType: string
-      isActive: boolean
-      startTime?: string   // "07:30"
-      endTime?: string
-      priceAdult?: number
-      priceChild?: number
-      foodItems?: string[] // ["rotli","dal","bhaat"]
+      mealType:   MealType
+      available?: boolean
+      startTime?: string | null   // "07:30"
+      endTime?:   string | null
+      price?:     number
+      foodItems?: string[]        // ["rotli","dal","bhaat"]
     }>
   }
   try {
@@ -69,47 +66,44 @@ export async function PUT(request: NextRequest) {
   const date = new Date(body.date)
   date.setUTCHours(0, 0, 0, 0)
 
-  // Upsert the schedule row
   const schedule = await prisma.weeklySchedule.upsert({
-    where: { bhojanshalaId_date: { bhojanshalaId: auth.user.bhojanshalaId, date } },
+    where: {
+      bhojanshalaId_date: { bhojanshalaId: auth.user.bhojanshalaId, date },
+    },
     create: {
       bhojanshalaId:  auth.user.bhojanshalaId,
       date,
       isClosed:       body.isClosed       ?? false,
-      noticeEnglish:  body.noticeEnglish  ?? null,
-      noticeGujarati: body.noticeGujarati ?? null,
+      specialNotice:  body.specialNotice  ?? null,
     },
     update: {
-      isClosed:       body.isClosed,
-      noticeEnglish:  body.noticeEnglish  ?? null,
-      noticeGujarati: body.noticeGujarati ?? null,
+      isClosed:      body.isClosed      ?? false,
+      specialNotice: body.specialNotice ?? null,
     },
   })
 
-  // Update meals
   if (body.meals) {
     for (const m of body.meals) {
       const meal = await prisma.meal.upsert({
-        where: { scheduleId_mealType: { scheduleId: schedule.id, mealType: m.mealType as any } },
-        create: {
-          scheduleId:  schedule.id,
-          mealType:    m.mealType as any,
-          isActive:    m.isActive ?? true,
-          startTime:   m.startTime  ?? null,
-          endTime:     m.endTime    ?? null,
-          priceAdult:  m.priceAdult  ?? null,
-          priceChild:  m.priceChild  ?? null,
+        where: {
+          scheduleId_mealType: { scheduleId: schedule.id, mealType: m.mealType },
         },
-        update: {
-          isActive:   m.isActive ?? true,
+        create: {
+          scheduleId: schedule.id,
+          mealType:   m.mealType,
+          available:  m.available  ?? true,
           startTime:  m.startTime  ?? null,
           endTime:    m.endTime    ?? null,
-          priceAdult: m.priceAdult  ?? null,
-          priceChild: m.priceChild  ?? null,
+          price:      m.price      ?? 0,
+        },
+        update: {
+          available: m.available  ?? true,
+          startTime: m.startTime  ?? null,
+          endTime:   m.endTime    ?? null,
+          price:     m.price      ?? 0,
         },
       })
 
-      // Replace food items
       if (m.foodItems !== undefined) {
         await prisma.foodItem.deleteMany({ where: { mealId: meal.id } })
         if (m.foodItems.length > 0) {

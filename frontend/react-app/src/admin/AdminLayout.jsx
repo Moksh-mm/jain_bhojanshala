@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 
 const SUPER_NAV = [
-  { key: 'dashboard',    label: 'Dashboard',      icon: '⊞' },
-  { key: 'bhojanshalas', label: 'Bhojanshalas',   icon: '🏛' },
-  { key: 'admins',       label: 'Admin Users',    icon: '👥' },
-  { key: 'logs',         label: 'Activity Logs',  icon: '📋' },
+  { key: 'dashboard',    label: 'Dashboard',     icon: '⊞' },
+  { key: 'bhojanshalas', label: 'Bhojanshalas',  icon: '🏛' },
+  { key: 'admins',       label: 'Admin Users',   icon: '👥' },
+  { key: 'logs',         label: 'Activity Logs', icon: '📋' },
 ]
 
 const ADMIN_NAV = [
@@ -31,13 +31,13 @@ function NavLinks({ items, section, navigate, onClose }) {
 }
 
 export default function AdminLayout({ children, section, navigate, goHome }) {
-  const { profile, signOut, isSuperAdmin } = useAuth()
+  const { user, signOut, isSuperAdmin } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const nav        = isSuperAdmin ? SUPER_NAV : ADMIN_NAV
-  const roleLabel  = isSuperAdmin ? 'Super Admin' : 'Bhojanshala Admin'
-  const initial    = (profile?.name?.[0] || 'A').toUpperCase()
-  const pageTitle  = nav.find(n => n.key === section)?.label || 'Dashboard'
+  const nav       = isSuperAdmin ? SUPER_NAV : ADMIN_NAV
+  const roleLabel = isSuperAdmin ? 'Super Admin' : 'Bhojanshala Admin'
+  const initial   = (user?.name?.[0] || 'A').toUpperCase()
+  const pageTitle = nav.find(n => n.key === section)?.label || 'Dashboard'
 
   const handleSignOut = async () => {
     await signOut()
@@ -61,7 +61,7 @@ export default function AdminLayout({ children, section, navigate, goHome }) {
         <div className="a-profile-row">
           <div className="a-avatar">{initial}</div>
           <div>
-            <div className="a-profile-name">{profile?.name || 'Admin'}</div>
+            <div className="a-profile-name">{user?.name || 'Admin'}</div>
             <div className="a-profile-sub">{roleLabel}</div>
           </div>
         </div>
@@ -75,12 +75,10 @@ export default function AdminLayout({ children, section, navigate, goHome }) {
 
   return (
     <div className="a-shell">
-      {/* Desktop sidebar */}
       <aside className="a-sidebar">
         <SidebarContent />
       </aside>
 
-      {/* Mobile drawer overlay */}
       {drawerOpen && (
         <div className="a-overlay" onClick={() => setDrawerOpen(false)}>
           <aside className="a-sidebar a-sidebar-mobile" onClick={e => e.stopPropagation()}>
@@ -89,7 +87,6 @@ export default function AdminLayout({ children, section, navigate, goHome }) {
         </div>
       )}
 
-      {/* Main content */}
       <div className="a-main">
         <header className="a-topbar">
           <button className="a-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">

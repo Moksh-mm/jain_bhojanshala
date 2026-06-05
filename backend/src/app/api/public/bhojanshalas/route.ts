@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { serializeBhojanshala } from '@/lib/serialize'
+import { serializeBhojanshala, serializeScheduleBasic } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -34,5 +34,25 @@ export async function GET(request: NextRequest) {
     include: { admins: { select: { id: true } } },
   })
 
-  return NextResponse.json({ data: bhojanshalas.map(serializeBhojanshala) })
+  const includeToday = searchParams.get('today') === 'true'
+  if (!includeToday) {
+    return NextResponse.json({ data: bhojanshalas.map(serializeBhojanshala) })
+  }
+
+  // Embed today's schedule for each bhojanshala
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const ids = bhojanshalas.map(b => b.id)
+  const schedules = await prisma.weeklySchedule.findMany({
+    where:   { bhojanshalaId: { in: ids }, date: today },
+    include: { meals: { include: { foodItems: true } } },
+  })
+  const schedMap = new Map(schedules.map(s => [s.bhojanshalaId, s]))
+
+  return NextResponse.json({
+    data: bhojanshalas.map(b => ({
+      ...serializeBhojanshala(b),
+      todaySchedule: schedMap.has(b.id) ? serializeScheduleBasic(schedMap.get(b.id)!) : null,
+    })),
+  })
 }

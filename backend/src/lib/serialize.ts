@@ -116,6 +116,20 @@ export function buildTimeline(
   })
 }
 
+export function serializeScheduleBasic(
+  schedule: ScheduleWithMeals,
+): { isClosed: boolean; specialNotice: string | null; meals: { breakfast: ApiMeal | null; lunch: ApiMeal | null; dinner: ApiMeal | null } } {
+  return {
+    isClosed:      schedule.isClosed,
+    specialNotice: schedule.specialNotice ?? null,
+    meals: {
+      breakfast: serializeMeal(schedule.meals.find(m => m.mealType === 'BREAKFAST')),
+      lunch:     serializeMeal(schedule.meals.find(m => m.mealType === 'LUNCH')),
+      dinner:    serializeMeal(schedule.meals.find(m => m.mealType === 'DINNER')),
+    },
+  }
+}
+
 export function serializeLog(
   log: ActivityLog & {
     user: Pick<User, 'id' | 'name' | 'role'>

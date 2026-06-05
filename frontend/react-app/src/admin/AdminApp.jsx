@@ -11,7 +11,7 @@ import MealEditor from './bhojanshala/MealEditor'
 import './admin.css'
 
 export default function AdminApp({ goHome }) {
-  const { user, profile, loading, isSuperAdmin } = useAuth()
+  const { user, loading, isSuperAdmin } = useAuth()
   const [section,    setSection]    = useState('dashboard')
   const [navPayload, setNavPayload] = useState(null)
 
@@ -28,9 +28,9 @@ export default function AdminApp({ goHome }) {
     )
   }
 
-  if (!user || !profile) return <AdminLogin goHome={goHome} />
+  if (!user) return <AdminLogin goHome={goHome} />
 
-  if (profile.status === 'disabled') {
+  if (!user.isActive) {
     return (
       <div className="a-full-loading" style={{ flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 36 }}>🚫</div>
@@ -51,15 +51,14 @@ export default function AdminApp({ goHome }) {
       switch (section) {
         case 'dashboard':    return <SuperDashboard navigate={navigate} />
         case 'bhojanshalas': return <BhojanshalaManagement navigate={navigate} payload={navPayload} />
-        case 'admins':       return <AdminManagement navigate={navigate} />
+        case 'admins':       return <AdminManagement navigate={navigate} payload={navPayload} />
         case 'logs':         return <ActivityLogs />
         default:             return <SuperDashboard navigate={navigate} />
       }
     } else {
-      // Bhojanshala Admin — only their assigned bhojanshala
       switch (section) {
         case 'dashboard': return <MyDashboard navigate={navigate} />
-        case 'meals':     return <MealEditor bhojId={profile.bhojanshala_id} navigate={navigate} />
+        case 'meals':     return <MealEditor navigate={navigate} />
         default:          return <MyDashboard navigate={navigate} />
       }
     }

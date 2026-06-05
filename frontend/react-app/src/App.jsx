@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { BHOJ } from './data/data';
 import HomeScreen   from './pages/HomeScreen';
 import DetailScreen from './pages/DetailScreen';
 import AdminApp     from './admin/AdminApp';
@@ -9,7 +8,6 @@ import { AuthProvider } from './auth/AuthContext';
 function AppInner() {
   const [lang,  setLang]  = useState('gu');
   const [route, setRoute] = useState({ name: 'home' });
-  const today = new Date().getDay();
 
   const scrollTop = () =>
     setTimeout(() => {
@@ -23,24 +21,22 @@ function AppInner() {
   const goAdmin    = ()   => { setRoute({ name: 'admin' });       scrollTop(); };
 
   if (route.name === 'admin') {
-    // Admin app takes over full screen — no app shell around it
     return <AdminApp goHome={goHome} />;
   }
 
   let screen;
   if (route.name === 'detail') {
-    const b = BHOJ.find((x) => x.id === route.id);
     screen = (
       <DetailScreen
-        b={b} lang={lang} setLang={setLang}
-        today={today} onBack={goHome} onAdmin={goAdmin}
+        id={route.id} lang={lang} setLang={setLang}
+        onBack={goHome} onAdmin={goAdmin}
       />
     );
   } else {
     screen = (
       <HomeScreen
         lang={lang} setLang={setLang}
-        today={today} onOpen={openDetail} onAdmin={goAdmin}
+        onOpen={openDetail} onAdmin={goAdmin}
       />
     );
   }

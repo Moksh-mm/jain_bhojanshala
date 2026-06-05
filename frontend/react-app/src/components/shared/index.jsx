@@ -110,12 +110,12 @@ export function FoodTag({ foodKey, count, active, onClick, lang }) {
   );
 }
 
-export function MealTriple({ day, lang }) {
+export function MealTriple({ todaySchedule, lang }) {
   const meals = [['breakfast', 'sun'], ['lunch', 'bowl'], ['dinner', 'moon']];
   return (
     <div className="meal-triple">
       {meals.map(([k, icon]) => {
-        const on = !day.closed && day.meals && day.meals[k] && day.meals[k].available;
+        const on = !todaySchedule?.isClosed && todaySchedule?.meals?.[k]?.available;
         return (
           <div key={k} className={'meal-pill' + (on ? ' meal-on' : ' meal-off')}>
             <Icon name={icon} size={14} stroke={2} />
