@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================================================
+// ENUMS
+// ================================================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum TiffinType {
+  OWN
+  PROVIDED
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+// ================================================================
+// MODELS
+// ================================================================
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  phone         String?
+  passwordHash  String
+  role          Role          @default(ADMIN)
+  isActive      Boolean       @default(true)
+  bhojanshalaId String?
+  bhojanshala   Bhojanshala?  @relation(fields: [bhojanshalaId], references: [id], onDelete: SetNull)
+  activityLogs  ActivityLog[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Bhojanshala {
+  id                    String           @id @default(cuid())
+  nameGujarati          String
+  nameEnglish           String
+  areaGujarati          String?
+  areaEnglish           String?
+  cityEnglish           String
+  cityGujarati          String?
+  addressGujarati       String?
+  addressEnglish        String?
+  latitude              Float?
+  longitude             Float?
+  phone                 String?
+  description           String?
+  coverImage            String?
+  images                String[]         @default([])
+  rating                Float            @default(0)
+  reviewCount           Int              @default(0)
+  tiffinAvailable       Boolean          @default(false)
+  tiffinType            TiffinType?
+  tiffinNotes           String?
+  dharamshalaAvailable  Boolean          @default(false)
+  parking               Boolean          @default(false)
+  washroom              Boolean          @default(false)
+  drinkingWater         Boolean          @default(false)
+  templeNearby          Boolean          @default(false)
+  familyFriendly        Boolean          @default(true)
+  wheelchairAccessible  Boolean          @default(false)
+  noticeEnglish         String?
+  noticeGujarati        String?
+  isActive              Boolean          @default(true)
+  admins                User[]
+  schedules             WeeklySchedule[]
+  activityLogs          ActivityLog[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@map("bhojanshalas")
+}
+
+model WeeklySchedule {
+  id            String      @id @default(cuid())
+  bhojanshalaId String
+  bhojanshala   Bhojanshala @relation(fields: [bhojanshalaId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  isClosed      Boolean     @default(false)
+  specialNotice String?
+  meals         Meal[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([bhojanshalaId, date])
+  @@map("weekly_schedules")
+}
+
+model Meal {
+  id         String         @id @default(cuid())
+  scheduleId String
+  schedule   WeeklySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  mealType   MealType
+  available  Boolean        @default(true)
+  startTime  String?        // "07:00" — 24h format
+  endTime    String?        // "09:00" — 24h format
+  price      Int            @default(0)
+  foodItems  FoodItem[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([scheduleId, mealType])
+  @@map("meals")
+}
+
+model FoodItem {
+  id        String   @id @default(cuid())
+  mealId    String
+  meal      Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  name      String   // lowercase key: 'rotli', 'dal', 'rice', etc.
+  createdAt DateTime @default(now())
+
+  @@map("food_items")
+}
+
+model ActivityLog {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bhojanshalaId String?
+  bhojanshala   Bhojanshala? @relation(fields: [bhojanshalaId], references: [id], onDelete: SetNull)
+  action        String
+  description   String?
+  createdAt     DateTime     @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([bhojanshalaId])
+  @@map("activity_logs")
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>જૈન ભોજનશાળા શોધો · Jain Bhojanshala Finder</title>
+
+  <template id="__bundler_thumbnail" data-bg-color="#f0e6cf">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#f0e6cf"/>
+      <g transform="translate(600,400)">
+        <circle cx="0" cy="-80" r="45" fill="#df8c28" opacity="0.9"/>
+        <path d="M-60 40 Q 0 20 60 40 L 40 120 Q 0 140 -40 120 Z" fill="#b3811f" opacity="0.85"/>
+        <rect x="-15" y="150" width="30" height="180" rx="8" fill="#e0902f" opacity="0.8"/>
+        <circle cx="-50" cy="250" r="25" fill="#5d8a36" opacity="0.8"/>
+        <circle cx="50" cy="250" r="25" fill="#d6841f" opacity="0.8"/>
+        <text x="0" y="380" font-family="Baloo Bhai 2, sans-serif" font-size="48" font-weight="700" fill="#2c2418" text-anchor="middle">ભોજનશાળા</text>
+      </g>
+    </svg>
+  </template>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400;500;600;700;800&family=Mukta+Vaani:wght@300;400;500;600;700&family=Hind+Vadodara:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="image-slot.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- data first (plain script, runs during parse) -->
+  <script src="data.js"></script>
+
+  <!-- components (babel, run in order after Babel loads) -->
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="frames/ios-frame.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="home.jsx"></script>
+  <script type="text/babel" src="details.jsx"></script>
+  <script type="text/babel" src="admin.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+
+  <!-- fit the fixed-size phone to any viewport -->
+  <script>
+    (function () {
+      var DW = 402, DH = 874, PAD = 28;
+      function fit() {
+        var el = document.querySelector('.device-scale');
+        if (!el) return false;
+        var s = Math.min(1, (window.innerWidth - PAD) / DW, (window.innerHeight - PAD) / DH);
+        el.style.transform = 'scale(' + s + ')';
+        return true;
+      }
+      window.addEventListener('resize', fit);
+      var tries = 0;
+      var iv = setInterval(function () { if (fit() || ++tries > 60) clearInterval(iv); }, 80);
+    })();
+  </script>
+</body>
+</html>
