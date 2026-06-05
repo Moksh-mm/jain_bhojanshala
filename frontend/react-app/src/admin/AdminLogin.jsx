@@ -14,7 +14,7 @@ export default function AdminLogin({ goHome }) {
     try {
       await signIn(email, password)
     } catch (err) {
-      setError(err.message || 'Invalid email or password.')
+      setError(err.message || 'Invalid username or password.')
     } finally {
       setBusy(false)
     }
@@ -33,10 +33,10 @@ export default function AdminLogin({ goHome }) {
 
         <form onSubmit={handleLogin} className="a-login-form">
           <div className="a-field">
-            <label className="a-label">Email</label>
+            <label className="a-label">Username</label>
             <input
-              className="a-input" type="email" autoComplete="email"
-              placeholder="admin@example.com"
+              className="a-input" type="text" autoComplete="username"
+              placeholder="admin"
               value={email} onChange={e => setEmail(e.target.value)} required
             />
           </div>
