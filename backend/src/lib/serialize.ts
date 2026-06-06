@@ -7,7 +7,7 @@ const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DAY_LONG  = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 type BhojanshalaWithAdmin = Bhojanshala & {
-  admins?: User[]
+  admins?: Pick<User, 'id' | 'name'>[]
 }
 
 export function serializeBhojanshala(b: BhojanshalaWithAdmin): ApiBhojanshala {

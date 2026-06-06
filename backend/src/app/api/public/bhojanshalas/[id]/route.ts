@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
   const bhoj = await prisma.bhojanshala.findUnique({
     where:   { id, isActive: true },
-    include: { admins: { select: { id: true } } },
+    include: { admins: { select: { id: true, name: true } } },
   })
 
   if (!bhoj) return NextResponse.json({ error: 'Bhojanshala not found' }, { status: 404 })

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   const bhojanshalas = await prisma.bhojanshala.findMany({
     where,
     orderBy: [{ cityEnglish: 'asc' }, { nameEnglish: 'asc' }],
-    include: { admins: { select: { id: true } } },
+    include: { admins: { select: { id: true, name: true } } },
   })
 
   const includeToday = searchParams.get('today') === 'true'
