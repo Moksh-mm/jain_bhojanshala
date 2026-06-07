@@ -14,9 +14,9 @@ import { publicApi } from '../lib/api';
 
 const QUICK_CHIPS = [
   { key: 'open',        emoji: '🟢', gu: 'હમણાં ખુલ્લું', en: 'Open now' },
-  { key: 'breakfast',   emoji: '🍵', gu: 'નવકારશી',         en: 'Navkarshi' },
+  { key: 'navkarshi',   emoji: '🍵', gu: 'નવકારશી',         en: 'Navkarshi' },
   { key: 'lunch',       emoji: '🍛', gu: 'બપોરે',           en: 'Lunch' },
-  { key: 'dinner',      emoji: '🌙', gu: 'ચોવિહાર',         en: 'Chovihar' },
+  { key: 'chovihar',    emoji: '🌙', gu: 'ચોવિહાર',         en: 'Chovihar' },
   { key: 'dharamshala', emoji: '🛏️', gu: 'ધર્મશાળા',       en: 'Dharamshala' },
   { key: 'tiffin',      emoji: '🥡', gu: 'ટિફિન',           en: 'Tiffin' },
   { key: 'free',        emoji: '💰', gu: 'નિ:શુલ્ક',        en: 'Free' },
@@ -31,18 +31,17 @@ const SORTS = [
 ];
 
 function BhojCard({ b, lang, onOpen }) {
-  const status    = computeStatus(b.todaySchedule);
-  const meals     = b.todaySchedule?.meals ?? {};
-  const notice    = bhojNotice(b, lang);
-  const lunchItems = meals.lunch?.items || meals.breakfast?.items || [];
+  const tm     = b.todayMeals;
+  const status = computeStatus(tm);
+  const notice = bhojNotice(b, lang);
 
   return (
     <article className="card" onClick={() => onOpen(b.id)}>
       <div className="card-photo">
-        <ImagePlaceholder
-          label={lang === 'gu' ? 'ભોજનનો ફોટો' : 'meal photo'}
-          style={{ width: '100%', height: '100%' }}
-        />
+        {b.coverImage
+          ? <img src={b.coverImage} alt={bhojName(b, lang)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <ImagePlaceholder label={lang === 'gu' ? 'ભોજનશાળા' : 'bhojanshala'} style={{ width: '100%', height: '100%' }} />
+        }
         <div className="card-photo-top">
           <StatusBadge status={status} lang={lang} />
         </div>
@@ -58,34 +57,35 @@ function BhojCard({ b, lang, onOpen }) {
           <Stars value={b.rating} />
         </div>
 
-        <MealTriple todaySchedule={b.todaySchedule} lang={lang} />
+        <MealTriple todayMeals={tm} lang={lang} />
 
-        {!b.todaySchedule?.isClosed && (
+        {tm && !tm.isClosed && (
           <div className="card-prices">
-            {['breakfast', 'lunch', 'dinner'].map((k) => {
-              const meal = meals[k];
-              const ok   = meal?.available;
+            {[['navkarshi', 'breakfast'], ['lunch', 'lunch'], ['chovihar', 'dinner']].map(([k, labelKey]) => {
+              const meal = tm[k];
+              const ok   = meal?.enabled;
               return (
                 <div key={k} className={'pr-col' + (ok ? '' : ' pr-off')}>
-                  <span className="pr-label">{L(k, lang)}</span>
-                  {ok ? <Money amount={meal.price} lang={lang} /> : <span className="pr-na">{L('notAvail', lang)}</span>}
+                  <span className="pr-label">{L(labelKey, lang)}</span>
+                  {ok && meal.price != null
+                    ? <Money amount={meal.price} lang={lang} />
+                    : <span className="pr-na">{ok ? L('free', lang) : L('notAvail', lang)}</span>
+                  }
                 </div>
               );
             })}
           </div>
         )}
 
-        {lunchItems.length > 0 && (
-          <div className="menu-preview">
-            {lunchItems.slice(0, 4).map((k) => FOODS[k] && (
-              <span key={k} className="menu-chip">{FOODS[k].emoji} {tr(FOODS[k], lang)}</span>
-            ))}
-          </div>
-        )}
-
         <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-          <ActionBtn icon="nav"     label={L('directions', lang)} variant="ghost" />
-          <ActionBtn icon="phone"   label={L('call', lang)}       variant="ghost" />
+          {b.directionsUrl
+            ? <a href={b.directionsUrl} target="_blank" rel="noopener noreferrer" className="action-btn action-ghost" onClick={e => e.stopPropagation()}><Icon name="nav" size={18} stroke={2} /><span>{L('directions', lang)}</span></a>
+            : <ActionBtn icon="nav" label={L('directions', lang)} variant="ghost" />
+          }
+          {b.phone
+            ? <a href={`tel:${b.phone}`} className="action-btn action-ghost" onClick={e => e.stopPropagation()}><Icon name="phone" size={18} stroke={2} /><span>{L('call', lang)}</span></a>
+            : <ActionBtn icon="phone" label={L('call', lang)} variant="ghost" />
+          }
           <ActionBtn icon="chevron" label={L('viewDetails', lang)} variant="primary" onClick={() => onOpen(b.id)} />
         </div>
       </div>
@@ -118,15 +118,17 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
   const results = useMemo(() => {
     let list = bhojanshalas.slice();
     if (food) list = list.filter(b => servesTodayFood(b, food));
-    if (chips.has('open'))        list = list.filter(b => computeStatus(b.todaySchedule) === 'open');
-    if (chips.has('breakfast'))   list = list.filter(b => b.todaySchedule?.meals.breakfast?.available);
-    if (chips.has('lunch'))       list = list.filter(b => b.todaySchedule?.meals.lunch?.available);
-    if (chips.has('dinner'))      list = list.filter(b => b.todaySchedule?.meals.dinner?.available);
+    if (chips.has('open'))        list = list.filter(b => computeStatus(b.todayMeals) === 'open');
+    if (chips.has('navkarshi'))   list = list.filter(b => b.todayMeals?.navkarshi?.enabled);
+    if (chips.has('lunch'))       list = list.filter(b => b.todayMeals?.lunch?.enabled);
+    if (chips.has('chovihar'))    list = list.filter(b => b.todayMeals?.chovihar?.enabled);
     if (chips.has('dharamshala')) list = list.filter(b => b.facilities?.dharamshalaAvailable);
     if (chips.has('tiffin'))      list = list.filter(b => b.tiffin?.available);
-    if (chips.has('free'))        list = list.filter(b =>
-      ['breakfast','lunch','dinner'].some(k => b.todaySchedule?.meals[k]?.available && b.todaySchedule.meals[k].price === 0)
-    );
+    if (chips.has('free'))        list = list.filter(b => {
+      const tm = b.todayMeals;
+      return tm && !tm.isClosed && [tm.navkarshi, tm.lunch, tm.chovihar]
+        .some(m => m?.enabled && m.price === 0);
+    });
     if (chips.has('under100'))    list = list.filter(b => minPriceToday(b) < 100);
     if (city.trim()) {
       const q = city.trim().toLowerCase();
@@ -136,11 +138,11 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
         b.areaEnglish?.toLowerCase().includes(q)
       );
     }
-    const ord = { open: 0, soon: 1, closed: 2 };
+    const ord = { open: 0, partial: 1, soon: 1, closed: 2 };
     list.sort((a, b) => {
       if (sort === 'price')  return minPriceToday(a) - minPriceToday(b);
       if (sort === 'rating') return b.rating - a.rating;
-      if (sort === 'open')   return ord[computeStatus(a.todaySchedule)] - ord[computeStatus(b.todaySchedule)];
+      if (sort === 'open')   return (ord[computeStatus(a.todayMeals)] ?? 2) - (ord[computeStatus(b.todayMeals)] ?? 2);
       return (a.nameEnglish || '').localeCompare(b.nameEnglish || '');
     });
     return list;

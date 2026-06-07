@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { serializeBhojanshala, serializeScheduleBasic } from '@/lib/serialize'
+import {
+  serializePublicBhojanshala,
+  computeTodayMeals,
+  fallbackMeals,
+} from '@/lib/publicSerialize'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -31,28 +35,44 @@ export async function GET(request: NextRequest) {
   const bhojanshalas = await prisma.bhojanshala.findMany({
     where,
     orderBy: [{ cityEnglish: 'asc' }, { nameEnglish: 'asc' }],
-    include: { admins: { select: { id: true, name: true } } },
   })
 
   const includeToday = searchParams.get('today') === 'true'
   if (!includeToday) {
-    return NextResponse.json({ data: bhojanshalas.map(serializeBhojanshala) })
+    return NextResponse.json({ data: bhojanshalas.map(serializePublicBhojanshala) })
   }
 
-  // Embed today's schedule for each bhojanshala
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const ids = bhojanshalas.map(b => b.id)
-  const schedules = await prisma.weeklySchedule.findMany({
-    where:   { bhojanshalaId: { in: ids }, date: today },
-    include: { meals: { include: { foodItems: true } } },
-  })
-  const schedMap = new Map(schedules.map(s => [s.bhojanshalaId, s]))
+  // Compute today's meals for each bhojanshala using AvailabilityCalendar
+  const todayUTC = new Date()
+  todayUTC.setUTCHours(0, 0, 0, 0)
+  const todayStr = todayUTC.toISOString().split('T')[0]
+  const todayDow = todayUTC.getUTCDay()
+  const ids      = bhojanshalas.map(b => b.id)
+
+  let entryMap = new Map<string, Record<string, any>>()
+  let ruleMap  = new Map<string, Record<string, any>>()
+
+  try {
+    const [entries, rules] = await Promise.all([
+      prisma.availabilityCalendar.findMany({
+        where: { bhojanshalaId: { in: ids }, date: todayUTC },
+      }),
+      prisma.recurringRule.findMany({
+        where: { bhojanshalaId: { in: ids }, dayOfWeek: todayDow },
+      }),
+    ])
+    entryMap = new Map(entries.map(e => [e.bhojanshalaId, e]))
+    ruleMap  = new Map(rules.map(r => [r.bhojanshalaId, r]))
+  } catch {
+    // Tables not yet migrated — fall back to bhojanshala-level fields below
+  }
 
   return NextResponse.json({
     data: bhojanshalas.map(b => ({
-      ...serializeBhojanshala(b),
-      todaySchedule: schedMap.has(b.id) ? serializeScheduleBasic(schedMap.get(b.id)!) : null,
+      ...serializePublicBhojanshala(b),
+      todayMeals: entryMap.size === 0 && ruleMap.size === 0
+        ? fallbackMeals(b as any, todayStr)
+        : computeTodayMeals(b as any, entryMap.get(b.id), ruleMap.get(b.id), todayStr),
     })),
   })
 }

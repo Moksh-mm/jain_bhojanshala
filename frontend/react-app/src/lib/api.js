@@ -93,6 +93,17 @@ export const adminApi = {
   updateMyBhojanshala: (body) => put('/admin/my-bhojanshala', body),
   getSchedule: (days = 7) => get(`/admin/schedule?days=${days}`),
   updateSchedule: (body) => put('/admin/schedule', body),
+  getClosedPeriods: () => get('/admin/closed-periods'),
+  createClosedPeriod: (body) => post('/admin/closed-periods', body),
+  deleteClosedPeriod: (id) => del(`/admin/closed-periods/${id}`),
+
+  // Availability calendar
+  getAvailability: (month) => get(`/admin/availability${month ? `?month=${month}` : ''}`),
+  upsertAvailability: (body) => post('/admin/availability', body),
+  deleteAvailability: (date) => del(`/admin/availability/${date}`),
+  getRecurringRules: () => get('/admin/recurring-rules'),
+  upsertRecurringRule: (body) => put('/admin/recurring-rules', body),
+  deleteRecurringRule: (dayOfWeek) => del(`/admin/recurring-rules/${dayOfWeek}`),
 }
 
 export { clearTokens, getToken, setTokens }

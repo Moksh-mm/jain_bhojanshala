@@ -13,12 +13,26 @@ export async function GET(request: NextRequest, { params }: Ctx) {
   const { id } = await params
   const bhoj = await prisma.bhojanshala.findUnique({
     where:   { id },
-    include: { admins: true },
+    include: { admins: { select: { id: true, name: true } }, closedPeriods: true },
   })
 
   if (!bhoj) return NextResponse.json({ error: 'Bhojanshala not found' }, { status: 404 })
   return NextResponse.json({ data: serializeBhojanshala(bhoj) })
 }
+
+const ALLOWED = [
+  'nameEnglish', 'nameGujarati', 'areaEnglish', 'areaGujarati',
+  'cityEnglish', 'cityGujarati', 'addressEnglish', 'addressGujarati',
+  'state', 'pinCode', 'landmark', 'latitude', 'longitude',
+  'phone', 'contactPersonName', 'alternateMobile', 'whatsappNumber', 'email', 'website',
+  'description', 'coverImage', 'entranceImage', 'diningHallImage',
+  'slug', 'metaTitle', 'metaDescription', 'openGraphImage',
+  'tiffinAvailable', 'tiffinType', 'tiffinNotes',
+  'dharamshalaAvailable', 'parking', 'washroom', 'drinkingWater', 'boilWater',
+  'templeNearby', 'familyFriendly', 'wheelchairAccessible',
+  'ekashnu', 'biaasanu', 'ambil', 'tirth', 'upashray', 'lift', 'airConditioned',
+  'noticeEnglish', 'noticeGujarati', 'isActive',
+]
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
   const auth = await requireSuperAdmin(request)
@@ -36,25 +50,15 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // Only pick allowed fields for update
-  const allowed = [
-    'nameEnglish', 'nameGujarati', 'areaEnglish', 'areaGujarati',
-    'cityEnglish', 'cityGujarati', 'addressEnglish', 'addressGujarati',
-    'latitude', 'longitude', 'phone', 'description',
-    'tiffinAvailable', 'tiffinType', 'tiffinNotes',
-    'dharamshalaAvailable', 'parking', 'washroom', 'drinkingWater',
-    'templeNearby', 'familyFriendly', 'wheelchairAccessible',
-    'noticeEnglish', 'noticeGujarati', 'isActive',
-  ]
   const data: Record<string, unknown> = {}
-  for (const key of allowed) {
+  for (const key of ALLOWED) {
     if (key in body) data[key] = body[key]
   }
 
   const updated = await prisma.bhojanshala.update({
     where:   { id },
     data,
-    include: { admins: true },
+    include: { admins: { select: { id: true, name: true } }, closedPeriods: true },
   })
 
   await log({
@@ -79,8 +83,8 @@ export async function DELETE(request: NextRequest, { params }: Ctx) {
   await prisma.bhojanshala.delete({ where: { id } })
 
   await log({
-    userId:  auth.user.id,
-    action:  'Deleted Bhojanshala',
+    userId:      auth.user.id,
+    action:      'Deleted Bhojanshala',
     description: `Deleted ${existing.nameEnglish} (${id})`,
   })
 

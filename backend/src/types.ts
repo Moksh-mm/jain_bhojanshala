@@ -1,5 +1,14 @@
 // Serialized API shapes (JSON over the wire)
 
+export interface ApiClosedPeriod {
+  id:        string
+  reason:    string
+  note:      string | null
+  startDate: string
+  endDate:   string
+  createdAt: string
+}
+
 export interface ApiBhojanshala {
   id:              string
   nameEnglish:     string
@@ -10,30 +19,72 @@ export interface ApiBhojanshala {
   cityGujarati:    string | null
   addressEnglish:  string | null
   addressGujarati: string | null
+  state:           string | null
+  pinCode:         string | null
+  landmark:        string | null
   phone:           string | null
+  contactPersonName: string | null
+  alternateMobile: string | null
+  whatsappNumber:  string | null
+  email:           string | null
+  website:         string | null
   description:     string | null
   coverImage:      string | null
+  entranceImage:   string | null
+  diningHallImage: string | null
   images:          string[]
   rating:          number
   reviewCount:     number
+  slug:            string | null
+  metaTitle:       string | null
+  metaDescription: string | null
+  openGraphImage:  string | null
   facilities: {
     parking:              boolean
     washroom:             boolean
     drinkingWater:        boolean
+    boilWater:            boolean
     dharamshalaAvailable: boolean
     templeNearby:         boolean
     familyFriendly:       boolean
     wheelchairAccessible: boolean
+    ekashnu:              boolean
+    biaasanu:             boolean
+    ambil:                boolean
+    tirth:                boolean
+    upashray:             boolean
+    lift:                 boolean
+    airConditioned:       boolean
   }
   tiffin: {
     available: boolean
     type:      string | null
     notes:     string | null
   }
+  latitude:  number | null
+  longitude: number | null
+  navkarshi: { available: boolean; startTime: string | null; endTime: string | null; price: number }
+  lunch:     { available: boolean; startTime: string | null; endTime: string | null; price: number }
+  chovihar:  { available: boolean; startTime: string | null; endTime: string | null; price: number }
+  dharamshala: {
+    available:   boolean
+    description: string | null
+    latitude:    number | null
+    longitude:   number | null
+    photos:      string[]
+  }
+  derasar: {
+    available:   boolean
+    description: string | null
+    latitude:    number | null
+    longitude:   number | null
+    photos:      string[]
+  }
   noticeEnglish:  string | null
   noticeGujarati: string | null
   isActive:       boolean
   admin:          { id: string; name: string } | null
+  closedPeriods:  ApiClosedPeriod[]
   createdAt:      string
   updatedAt:      string
 }
@@ -106,18 +157,48 @@ export interface CreateBhojanshalaBody {
   cityGujarati?:        string
   addressEnglish?:      string
   addressGujarati?:     string
+  state?:               string
+  pinCode?:             string
+  landmark?:            string
   latitude?:            number
   longitude?:           number
   phone?:               string
+  contactPersonName?:   string
+  alternateMobile?:     string
+  whatsappNumber?:      string
+  email?:               string
+  website?:             string
   description?:         string
+  coverImage?:          string
+  entranceImage?:       string
+  diningHallImage?:     string
+  slug?:                string
+  metaTitle?:           string
+  metaDescription?:     string
+  openGraphImage?:      string
   tiffinAvailable?:     boolean
   tiffinType?:          'OWN' | 'PROVIDED'
   tiffinNotes?:         string
   dharamshalaAvailable?: boolean
-  parking?:             boolean
-  washroom?:            boolean
-  drinkingWater?:       boolean
-  templeNearby?:        boolean
-  familyFriendly?:      boolean
+  parking?:              boolean
+  washroom?:             boolean
+  drinkingWater?:        boolean
+  boilWater?:            boolean
+  templeNearby?:         boolean
+  familyFriendly?:       boolean
   wheelchairAccessible?: boolean
+  ekashnu?:              boolean
+  biaasanu?:             boolean
+  ambil?:                boolean
+  tirth?:                boolean
+  upashray?:             boolean
+  lift?:                 boolean
+  airConditioned?:       boolean
+  isActive?:             boolean
+  // Inline admin creation (optional)
+  adminName?:            string
+  adminUsername?:        string
+  adminPassword?:        string
+  adminPhone?:           string
+  adminEmail?:           string
 }

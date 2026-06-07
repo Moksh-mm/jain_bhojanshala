@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ================================================================
@@ -19,6 +18,14 @@ enum Role {
 enum TiffinType {
   OWN
   PROVIDED
+}
+
+enum ClosedReason {
+  WEEKLY_HOLIDAY
+  FESTIVAL
+  MAINTENANCE
+  TEMPORARY
+  OTHER
 }
 
 enum MealType {
@@ -60,12 +67,30 @@ model Bhojanshala {
   addressEnglish        String?
   latitude              Float?
   longitude             Float?
+  // Contact
+  contactPersonName     String?
+  alternateMobile       String?
+  whatsappNumber        String?
+  email                 String?
+  website               String?
+  // Location
+  state                 String?
+  pinCode               String?
+  landmark              String?
   phone                 String?
   description           String?
+  // Photos
   coverImage            String?
+  entranceImage         String?
+  diningHallImage       String?
   images                String[]         @default([])
   rating                Float            @default(0)
   reviewCount           Int              @default(0)
+  // SEO
+  slug                  String?          @unique
+  metaTitle             String?
+  metaDescription       String?
+  openGraphImage        String?
   tiffinAvailable       Boolean          @default(false)
   tiffinType            TiffinType?
   tiffinNotes           String?
@@ -73,19 +98,114 @@ model Bhojanshala {
   parking               Boolean          @default(false)
   washroom              Boolean          @default(false)
   drinkingWater         Boolean          @default(false)
+  boilWater             Boolean          @default(false)
   templeNearby          Boolean          @default(false)
   familyFriendly        Boolean          @default(true)
   wheelchairAccessible  Boolean          @default(false)
+  ekashnu               Boolean          @default(false)
+  biaasanu              Boolean          @default(false)
+  ambil                 Boolean          @default(false)
+  tirth                 Boolean          @default(false)
+  upashray              Boolean          @default(false)
+  lift                  Boolean          @default(false)
+  airConditioned        Boolean          @default(false)
+  // Regular meal timings (bhojanshala-level defaults)
+  navkarshiAvailable    Boolean          @default(false)
+  navkarshiStartTime    String?
+  navkarshiEndTime      String?
+  navkarshiPrice        Int              @default(0)
+  lunchAvailable        Boolean          @default(false)
+  lunchStartTime        String?
+  lunchEndTime          String?
+  lunchPrice            Int              @default(0)
+  choviharAvailable     Boolean          @default(false)
+  choviharStartTime     String?
+  choviharEndTime       String?
+  choviharPrice         Int              @default(0)
+  // Dharamshala details
+  dharamshalaDescription  String?
+  dharamshalaLatitude     Float?
+  dharamshalaLongitude    Float?
+  dharamshalaPhotos       String[]       @default([])
+  // Derasar
+  derasarAvailable      Boolean          @default(false)
+  derasarDescription    String?
+  derasarLatitude       Float?
+  derasarLongitude      Float?
+  derasarPhotos         String[]         @default([])
   noticeEnglish         String?
   noticeGujarati        String?
   isActive              Boolean          @default(true)
   admins                User[]
   schedules             WeeklySchedule[]
+  closedPeriods         ClosedPeriod[]
   activityLogs          ActivityLog[]
+  availabilityCalendar  AvailabilityCalendar[]
+  recurringRules        RecurringRule[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
   @@map("bhojanshalas")
+}
+
+model AvailabilityCalendar {
+  id               String        @id @default(cuid())
+  bhojanshalaId    String
+  bhojanshala      Bhojanshala   @relation(fields: [bhojanshalaId], references: [id], onDelete: Cascade)
+  date             DateTime      @db.Date
+  isClosed         Boolean       @default(false)
+  closedReason     ClosedReason?
+  closedNote       String?
+  specialNotice    String?
+  navkarshiEnabled Boolean       @default(true)
+  navkarshiStart   String?
+  navkarshiEnd     String?
+  navkarshiPrice   Int?
+  lunchEnabled     Boolean       @default(true)
+  lunchStart       String?
+  lunchEnd         String?
+  lunchPrice       Int?
+  choviharEnabled  Boolean       @default(true)
+  choviharStart    String?
+  choviharEnd      String?
+  choviharPrice    Int?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([bhojanshalaId, date])
+  @@index([bhojanshalaId, date])
+  @@map("availability_calendar")
+}
+
+model RecurringRule {
+  id               String        @id @default(cuid())
+  bhojanshalaId    String
+  bhojanshala      Bhojanshala   @relation(fields: [bhojanshalaId], references: [id], onDelete: Cascade)
+  dayOfWeek        Int           // 0 = Sunday … 6 = Saturday
+  isClosed         Boolean       @default(false)
+  closedReason     ClosedReason?
+  navkarshiEnabled Boolean       @default(true)
+  lunchEnabled     Boolean       @default(true)
+  choviharEnabled  Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([bhojanshalaId, dayOfWeek])
+  @@map("recurring_rules")
+}
+
+model ClosedPeriod {
+  id            String       @id @default(cuid())
+  bhojanshalaId String
+  bhojanshala   Bhojanshala  @relation(fields: [bhojanshalaId], references: [id], onDelete: Cascade)
+  reason        ClosedReason @default(OTHER)
+  note          String?
+  startDate     DateTime     @db.Date
+  endDate       DateTime     @db.Date
+  createdAt     DateTime     @default(now())
+
+  @@index([bhojanshalaId])
+  @@map("closed_periods")
 }
 
 model WeeklySchedule {

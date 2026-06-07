@@ -55,32 +55,20 @@ function nowMin() {
   return n.getHours() * 60 + n.getMinutes();
 }
 
-// ---- status from API todaySchedule ----
-export function computeStatus(todaySchedule, atMin) {
-  if (!todaySchedule || todaySchedule.isClosed) return 'closed';
-  const meals = ['breakfast', 'lunch', 'dinner']
-    .map(k => todaySchedule.meals[k])
-    .filter(m => m?.available);
-  if (!meals.length) return 'closed';
-  const now = atMin ?? nowMin();
-  for (const m of meals) {
-    const s = timeStrToMin(m.startTime);
-    const e = timeStrToMin(m.endTime);
-    if (s != null && e != null && now >= s && now <= e) return 'open';
-  }
-  for (const m of meals) {
-    const s = timeStrToMin(m.startTime);
-    if (s != null && now >= s - 60 && now < s) return 'soon';
-  }
-  return 'closed';
+// ---- status from API todayMeals (PublicDayAvailability) ----
+export function computeStatus(todayMeals) {
+  if (!todayMeals || todayMeals.isClosed) return 'closed';
+  const enabled = [todayMeals.navkarshi, todayMeals.lunch, todayMeals.chovihar]
+    .filter(m => m?.enabled).length;
+  if (enabled === 0) return 'closed';
+  if (enabled < 3)   return 'partial';
+  return 'open';
 }
 
 // ---- food helpers (API format) ----
-export function servesTodayFood(bhoj, foodKey) {
-  if (!bhoj.todaySchedule || bhoj.todaySchedule.isClosed) return false;
-  return ['breakfast', 'lunch', 'dinner'].some(
-    k => bhoj.todaySchedule.meals[k]?.available && bhoj.todaySchedule.meals[k].items?.includes(foodKey)
-  );
+export function servesTodayFood(_bhoj, _foodKey) {
+  // Food item tracking removed from new availability system
+  return false;
 }
 
 export function foodCountsForList(list) {
@@ -106,36 +94,41 @@ export function bhojFacilities(b) {
   const out = [];
   if (f.parking)              out.push('parking');
   if (f.drinkingWater)        out.push('water');
+  if (f.boilWater)            out.push('boilWater');
   if (f.washroom)             out.push('washroom');
   if (f.dharamshalaAvailable) out.push('dharamshala');
   if (f.templeNearby)         out.push('temple');
   if (f.familyFriendly)       out.push('family');
   if (f.wheelchairAccessible) out.push('wheelchair');
+  if (f.ekashnu)              out.push('ekashnu');
+  if (f.biaasanu)             out.push('biaasanu');
+  if (f.ambil)                out.push('ambil');
+  if (f.tirth)                out.push('tirth');
+  if (f.upashray)             out.push('upashray');
   return out;
 }
 
-// Min price from today's meals
+// Min price from todayMeals (PublicDayAvailability)
 export function minPriceToday(bhoj) {
-  if (!bhoj.todaySchedule || bhoj.todaySchedule.isClosed) return Infinity;
-  const prices = ['breakfast', 'lunch', 'dinner']
-    .map(k => bhoj.todaySchedule.meals[k])
-    .filter(m => m?.available)
+  const tm = bhoj.todayMeals;
+  if (!tm || tm.isClosed) return Infinity;
+  const prices = [tm.navkarshi, tm.lunch, tm.chovihar]
+    .filter(m => m?.enabled && m.price != null)
     .map(m => m.price);
   return prices.length ? Math.min(...prices) : Infinity;
 }
 
-// nextOpenInfo from a 7-day timeline array (ApiDaySchedule[])
-export function nextOpenInfo(timeline, fromIdx, lang) {
-  if (!timeline?.length) return null;
-  for (let i = 1; i < timeline.length; i++) {
-    const day = timeline[(fromIdx + i) % timeline.length];
+// nextOpenInfo from a 7-day availability array (PublicDayAvailability[])
+export function nextOpenInfo(availability, fromIdx, lang) {
+  if (!availability?.length) return null;
+  for (let i = 1; i < availability.length; i++) {
+    const day = availability[(fromIdx + i) % availability.length];
     if (!day || day.isClosed) continue;
-    const meals = ['breakfast', 'lunch', 'dinner']
-      .map(k => day.meals[k])
-      .filter(m => m?.available && m.startTime)
+    const meals = [day.navkarshi, day.lunch, day.chovihar]
+      .filter(m => m?.enabled && m.startTime)
       .sort((a, b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
     if (meals.length) {
-      const dow = new Date(day.date).getDay();
+      const dow = new Date(day.date + 'T00:00:00Z').getUTCDay();
       return `${WEEKDAYS.long[lang][dow]} · ${formatTimeStr(meals[0].startTime)}`;
     }
   }
@@ -158,11 +151,14 @@ export const T = {
   sortBy:       { gu: 'ક્રમ', en: 'Sort' },
   clear:        { gu: 'સાફ કરો', en: 'Clear' },
   open:         { gu: 'ખુલ્લું', en: 'Open' },
+  partial:      { gu: 'આંશિક ખુલ્લું', en: 'Partially open' },
   soon:         { gu: 'થોડીવારમાં', en: 'Opening soon' },
   closed:       { gu: 'બંધ', en: 'Closed' },
   closedToday:  { gu: 'આજે બંધ', en: 'Closed today' },
-  breakfast:    { gu: 'નવકારશી', en: 'Navkarshi' },
+  navkarshi:    { gu: 'નવકારશી', en: 'Navkarshi' },
   lunch:        { gu: 'બપોરે', en: 'Lunch' },
+  chovihar:     { gu: 'ચોવિહાર', en: 'Chovihar' },
+  breakfast:    { gu: 'નવકારશી', en: 'Navkarshi' },
   dinner:       { gu: 'ચોવિહાર', en: 'Chovihar' },
   free:         { gu: 'નિ:શુલ્ક', en: 'Free' },
   notAvail:     { gu: 'ઉપલબ્ધ નથી', en: 'Not available' },

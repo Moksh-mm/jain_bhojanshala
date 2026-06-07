@@ -24,9 +24,9 @@ export default function AdminLogin({ goHome }) {
     <div className="a-login-page">
       <div className="a-login-card">
         <div className="a-login-brand">
-          <div className="a-login-logo">JB</div>
-          <h1>Admin Portal</h1>
-          <p>Jain Bhojanshala Finder</p>
+          <div className="a-login-logo">🛕</div>
+          <h1>જૈન માહિતી પોર્ટલ</h1>
+          <p>Admin Portal · Jain Bhojanshala Finder</p>
         </div>
 
         {error && <div className="a-login-error">{error}</div>}

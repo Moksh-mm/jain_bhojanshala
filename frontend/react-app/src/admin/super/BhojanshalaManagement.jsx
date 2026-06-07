@@ -1,25 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
 import { superAdmin } from '../../lib/api'
 
-const EMPTY_FORM = {
-  nameEnglish: '', nameGujarati: '', areaEnglish: '', areaGujarati: '',
-  cityEnglish: '', cityGujarati: '', addressEnglish: '', addressGujarati: '',
-  phone: '', description: '',
-  tiffinAvailable: false, tiffinType: 'OWN', tiffinNotes: '',
-  dharamshalaAvailable: false, parking: false, washroom: false,
-  drinkingWater: false, templeNearby: false, familyFriendly: true,
-  wheelchairAccessible: false, isActive: true,
+const EMPTY_CREATE = {
+  nameEnglish: '', nameGujarati: '', cityEnglish: '',
+  adminUsername: '', adminPassword: '',
+  isActive: true,
 }
 
 function Modal({ title, onClose, children, footer }) {
   return (
     <div className="a-modal-bg" onClick={onClose}>
-      <div className="a-modal" onClick={e => e.stopPropagation()}>
+      <div className="a-modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
         <div className="a-modal-head">
           <h2 className="a-modal-title">{title}</h2>
           <button className="a-modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="a-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto' }}>{children}</div>
+        <div className="a-modal-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '0 24px 8px' }}>
+          {children}
+        </div>
         {footer && <div className="a-modal-foot">{footer}</div>}
       </div>
     </div>
@@ -38,94 +36,48 @@ function Toggle({ checked, onChange, label }) {
   )
 }
 
-function BhojForm({ form, setForm }) {
-  const f = (key) => (val) => setForm(prev => ({ ...prev, [key]: val }))
-  const inp = (key, ...rest) => (
-    <input className="a-input" value={form[key]}
-      onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} {...rest} />
+function CreateForm({ form, setForm }) {
+  const inp = (key, extra = {}) => (
+    <input className="a-input" value={form[key] ?? ''}
+      onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} {...extra} />
   )
   return (
-    <div>
-      <p className="a-section-title">Basic Info</p>
+    <div style={{ paddingTop: 8 }}>
+      <p className="a-section-title">Bhojanshala Name</p>
       <div className="a-form-grid">
         <div className="a-field">
           <label className="a-label">English Name <span className="req">*</span></label>
-          {inp('nameEnglish', { placeholder: 'Shri Adinath Bhojanshala', required: true })}
+          {inp('nameEnglish', { placeholder: 'Shri Adinath Bhojanshala' })}
         </div>
         <div className="a-field">
           <label className="a-label">Gujarati Name <span className="req">*</span></label>
-          {inp('nameGujarati', { placeholder: 'શ્રી આદિનાથ ભોજનશાળા', required: true })}
-        </div>
-        <div className="a-field">
-          <label className="a-label">City (English) <span className="req">*</span></label>
-          {inp('cityEnglish', { placeholder: 'Ahmedabad', required: true })}
-        </div>
-        <div className="a-field">
-          <label className="a-label">City (Gujarati)</label>
-          {inp('cityGujarati', { placeholder: 'અમદાવાદ' })}
-        </div>
-        <div className="a-field">
-          <label className="a-label">Area (English)</label>
-          {inp('areaEnglish', { placeholder: 'Paldi' })}
-        </div>
-        <div className="a-field">
-          <label className="a-label">Area (Gujarati)</label>
-          {inp('areaGujarati', { placeholder: 'પાલડી' })}
+          {inp('nameGujarati', { placeholder: 'શ્રી આદિનાથ ભોજનશાળા' })}
         </div>
         <div className="a-field" style={{ gridColumn: '1 / -1' }}>
-          <label className="a-label">Address (English)</label>
-          {inp('addressEnglish', { placeholder: 'Full address' })}
+          <label className="a-label">City <span className="req">*</span></label>
+          {inp('cityEnglish', { placeholder: 'Ahmedabad' })}
+        </div>
+      </div>
+
+      <p className="a-section-title" style={{ marginTop: 20 }}>Admin Login Credentials</p>
+      <div className="a-hint" style={{ marginBottom: 12 }}>
+        The bhojanshala admin will use these to log in and manage their listing.
+      </div>
+      <div className="a-form-grid">
+        <div className="a-field">
+          <label className="a-label">Username <span className="req">*</span></label>
+          {inp('adminUsername', { placeholder: 'adinath.ahmedabad' })}
         </div>
         <div className="a-field">
-          <label className="a-label">Phone</label>
-          {inp('phone', { placeholder: '+91 98765 43210' })}
-        </div>
-        <div className="a-field">
-          <label className="a-label">Description</label>
-          {inp('description', { placeholder: 'Short description' })}
+          <label className="a-label">Password <span className="req">*</span></label>
+          {inp('adminPassword', { placeholder: 'Min. 6 characters', type: 'password' })}
         </div>
       </div>
 
-      <p className="a-section-title" style={{ marginTop: 18 }}>Facilities</p>
-      <div className="a-check-grid">
-        {[
-          ['parking',              'Parking'],
-          ['drinkingWater',        'Drinking Water'],
-          ['washroom',             'Washroom'],
-          ['dharamshalaAvailable', 'Dharamshala'],
-          ['templeNearby',         'Temple Nearby'],
-          ['familyFriendly',       'Family Friendly'],
-          ['wheelchairAccessible', 'Wheelchair'],
-        ].map(([key, label]) => (
-          <label key={key} className={`a-check-chip ${form[key] ? 'selected' : ''}`}>
-            <input type="checkbox" checked={!!form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.checked }))} />
-            {label}
-          </label>
-        ))}
-      </div>
-
-      <p className="a-section-title" style={{ marginTop: 18 }}>Tiffin Service</p>
-      <div className="a-row" style={{ marginBottom: 10 }}>
-        <Toggle checked={form.tiffinAvailable} onChange={f('tiffinAvailable')} label="Tiffin Available" />
-      </div>
-      {form.tiffinAvailable && (
-        <div className="a-form-grid">
-          <div className="a-field">
-            <label className="a-label">Type</label>
-            <select className="a-select" value={form.tiffinType} onChange={e => setForm(p => ({ ...p, tiffinType: e.target.value }))}>
-              <option value="OWN">Bring Your Own Tiffin</option>
-              <option value="PROVIDED">Container Provided</option>
-            </select>
-          </div>
-          <div className="a-field">
-            <label className="a-label">Notes</label>
-            {inp('tiffinNotes', { placeholder: 'Extra charges, etc.' })}
-          </div>
-        </div>
-      )}
-
-      <div className="a-row" style={{ marginTop: 14 }}>
-        <Toggle checked={form.isActive} onChange={f('isActive')} label="Visible on public website" />
+      <div style={{ marginTop: 16 }}>
+        <Toggle checked={!!form.isActive}
+          onChange={v => setForm(p => ({ ...p, isActive: v }))}
+          label="Visible on public website immediately" />
       </div>
     </div>
   )
@@ -165,17 +117,17 @@ function AssignAdminModal({ bhoj, admins, onClose, onAssigned }) {
       </>}
     >
       {err && <div className="a-alert a-alert-error">{err}</div>}
-      <div className="a-field">
+      <div className="a-field" style={{ padding: '16px 0' }}>
         <label className="a-label">Select Admin</label>
         <select className="a-select" value={selectedAdmin} onChange={e => setSelectedAdmin(e.target.value)}>
           <option value="">— No admin assigned —</option>
           {admins.map(a => (
             <option key={a.id} value={a.id}>
-              {a.name} {a.bhojanshalaId && a.bhojanshalaId !== bhoj.id ? `(currently assigned elsewhere)` : ''}
+              {a.name}{a.bhojanshalaId && a.bhojanshalaId !== bhoj.id ? ' (assigned elsewhere)' : ''}
             </option>
           ))}
         </select>
-        <div className="a-hint">One admin manages one bhojanshala. Reassigning will unassign them from their current one.</div>
+        <div className="a-hint">One admin manages one bhojanshala.</div>
       </div>
     </Modal>
   )
@@ -186,9 +138,8 @@ export default function BhojanshalaManagement({ navigate, payload }) {
   const [admins,     setAdmins]     = useState([])
   const [loading,    setLoading]    = useState(true)
   const [search,     setSearch]     = useState('')
-  const [modalMode,  setModalMode]  = useState(null)
-  const [editBhoj,   setEditBhoj]   = useState(null)
-  const [form,       setForm]       = useState(EMPTY_FORM)
+  const [showCreate, setShowCreate] = useState(false)
+  const [form,       setForm]       = useState(EMPTY_CREATE)
   const [assignBhoj, setAssignBhoj] = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [busy,       setBusy]       = useState(false)
@@ -216,52 +167,31 @@ export default function BhojanshalaManagement({ navigate, payload }) {
   }, [])
 
   function openCreate() {
-    setForm({ ...EMPTY_FORM })
-    setEditBhoj(null)
-    setModalMode('create')
+    setForm({ ...EMPTY_CREATE })
+    setShowCreate(true)
+    setAlert(null)
   }
 
-  function openEdit(b) {
-    setForm({
-      nameEnglish:          b.nameEnglish,
-      nameGujarati:         b.nameGujarati,
-      areaEnglish:          b.areaEnglish  || '',
-      areaGujarati:         b.areaGujarati || '',
-      cityEnglish:          b.cityEnglish,
-      cityGujarati:         b.cityGujarati || '',
-      addressEnglish:       b.addressEnglish  || '',
-      addressGujarati:      b.addressGujarati || '',
-      phone:                b.phone       || '',
-      description:          b.description || '',
-      tiffinAvailable:      b.tiffin?.available     ?? false,
-      tiffinType:           b.tiffin?.type          ?? 'OWN',
-      tiffinNotes:          b.tiffin?.notes         ?? '',
-      dharamshalaAvailable: b.facilities?.dharamshalaAvailable ?? false,
-      parking:              b.facilities?.parking              ?? false,
-      washroom:             b.facilities?.washroom             ?? false,
-      drinkingWater:        b.facilities?.drinkingWater        ?? false,
-      templeNearby:         b.facilities?.templeNearby         ?? false,
-      familyFriendly:       b.facilities?.familyFriendly       ?? true,
-      wheelchairAccessible: b.facilities?.wheelchairAccessible ?? false,
-      isActive:             b.isActive,
-    })
-    setEditBhoj(b)
-    setModalMode('edit')
-  }
+  async function handleCreate() {
+    const { nameEnglish, nameGujarati, cityEnglish, adminUsername, adminPassword } = form
+    if (!nameEnglish?.trim())   { setAlert({ type: 'error', msg: 'English name is required.' }); return }
+    if (!nameGujarati?.trim())  { setAlert({ type: 'error', msg: 'Gujarati name is required.' }); return }
+    if (!cityEnglish?.trim())   { setAlert({ type: 'error', msg: 'City is required.' }); return }
+    if (!adminUsername?.trim()) { setAlert({ type: 'error', msg: 'Admin username is required.' }); return }
+    if (!adminPassword || adminPassword.length < 6) { setAlert({ type: 'error', msg: 'Password must be at least 6 characters.' }); return }
 
-  async function handleSave() {
-    if (!form.nameEnglish || !form.nameGujarati || !form.cityEnglish) {
-      setAlert({ type: 'error', msg: 'Name (English + Gujarati) and City are required.' })
-      return
-    }
     setBusy(true); setAlert(null)
     try {
-      if (modalMode === 'create') {
-        await superAdmin.createBhojanshala(form)
-      } else {
-        await superAdmin.updateBhojanshala(editBhoj.id, form)
-      }
-      setModalMode(null)
+      await superAdmin.createBhojanshala({
+        nameEnglish:   nameEnglish.trim(),
+        nameGujarati:  nameGujarati.trim(),
+        cityEnglish:   cityEnglish.trim(),
+        isActive:      form.isActive,
+        adminName:     adminUsername.trim(),
+        adminUsername: adminUsername.trim(),
+        adminPassword: adminPassword,
+      })
+      setShowCreate(false)
       loadData()
     } catch (err) {
       setAlert({ type: 'error', msg: err.message })
@@ -293,7 +223,7 @@ export default function BhojanshalaManagement({ navigate, payload }) {
     !search ||
     b.nameEnglish.toLowerCase().includes(search.toLowerCase()) ||
     b.cityEnglish.toLowerCase().includes(search.toLowerCase()) ||
-    b.nameGujarati?.includes(search)
+    (b.nameGujarati || '').includes(search)
   )
 
   return (
@@ -303,7 +233,9 @@ export default function BhojanshalaManagement({ navigate, payload }) {
         <button className="a-btn a-btn-primary" onClick={openCreate}>+ Add New</button>
       </div>
 
-      {alert && <div className={`a-alert a-alert-${alert.type}`}>{alert.msg}</div>}
+      {alert && !showCreate && (
+        <div className={`a-alert a-alert-${alert.type}`}>{alert.msg}</div>
+      )}
 
       <div className="a-search-row">
         <div className="a-search-wrap">
@@ -325,7 +257,10 @@ export default function BhojanshalaManagement({ navigate, payload }) {
           <div className="a-table-wrap">
             <table className="a-table">
               <thead>
-                <tr><th>Name</th><th>City</th><th>Admin</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
+                <tr>
+                  <th>Name</th><th>City</th><th>Admin</th>
+                  <th>Status</th><th>Updated</th><th>Actions</th>
+                </tr>
               </thead>
               <tbody>
                 {filtered.map(b => (
@@ -350,8 +285,6 @@ export default function BhojanshalaManagement({ navigate, payload }) {
                     </td>
                     <td>
                       <div className="a-actions">
-                        <button className="a-btn a-btn-secondary a-btn-xs" onClick={() => openEdit(b)}>Edit</button>
-                        <button className="a-btn a-btn-secondary a-btn-xs" onClick={() => setAssignBhoj(b)}>Assign Admin</button>
                         <button className="a-btn a-btn-xs"
                           style={b.isActive
                             ? { background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' }
@@ -370,18 +303,19 @@ export default function BhojanshalaManagement({ navigate, payload }) {
         )}
       </div>
 
-      {modalMode && (
+      {showCreate && (
         <Modal
-          title={modalMode === 'create' ? 'Add New Bhojanshala' : `Edit — ${editBhoj?.nameEnglish}`}
-          onClose={() => setModalMode(null)}
+          title="Add New Bhojanshala"
+          onClose={() => setShowCreate(false)}
           footer={<>
-            <button className="a-btn a-btn-secondary" onClick={() => setModalMode(null)}>Cancel</button>
-            <button className="a-btn a-btn-primary" onClick={handleSave} disabled={busy}>
-              {busy ? 'Saving…' : modalMode === 'create' ? 'Create Bhojanshala' : 'Save Changes'}
+            {alert && <span style={{ color: '#dc2626', fontSize: 13, flex: 1 }}>{alert.msg}</span>}
+            <button className="a-btn a-btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="a-btn a-btn-primary" onClick={handleCreate} disabled={busy}>
+              {busy ? 'Creating…' : 'Create'}
             </button>
           </>}
         >
-          <BhojForm form={form} setForm={setForm} />
+          <CreateForm form={form} setForm={setForm} />
         </Modal>
       )}
 
@@ -401,8 +335,8 @@ export default function BhojanshalaManagement({ navigate, payload }) {
             <button className="a-btn a-btn-danger" onClick={() => handleDelete(confirmDel)}>Yes, Delete</button>
           </>}
         >
-          <div className="a-confirm">
-            <p>Delete <strong>{confirmDel.nameEnglish}</strong>? This will remove all meal data and logs. Cannot be undone.</p>
+          <div className="a-confirm" style={{ padding: '16px 0' }}>
+            <p>Delete <strong>{confirmDel.nameEnglish}</strong>? All meal data and logs will be removed. Cannot be undone.</p>
           </div>
         </Modal>
       )}

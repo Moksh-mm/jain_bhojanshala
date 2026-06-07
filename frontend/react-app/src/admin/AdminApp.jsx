@@ -46,21 +46,18 @@ export default function AdminApp({ goHome }) {
     )
   }
 
+  // Bhojanshala admins get the Gujarati portal — no sidebar layout
+  if (!isSuperAdmin) {
+    return <MyDashboard goHome={goHome} />
+  }
+
   const renderContent = () => {
-    if (isSuperAdmin) {
-      switch (section) {
-        case 'dashboard':    return <SuperDashboard navigate={navigate} />
-        case 'bhojanshalas': return <BhojanshalaManagement navigate={navigate} payload={navPayload} />
-        case 'admins':       return <AdminManagement navigate={navigate} payload={navPayload} />
-        case 'logs':         return <ActivityLogs />
-        default:             return <SuperDashboard navigate={navigate} />
-      }
-    } else {
-      switch (section) {
-        case 'dashboard': return <MyDashboard navigate={navigate} />
-        case 'meals':     return <MealEditor navigate={navigate} />
-        default:          return <MyDashboard navigate={navigate} />
-      }
+    switch (section) {
+      case 'dashboard':    return <SuperDashboard navigate={navigate} />
+      case 'bhojanshalas': return <BhojanshalaManagement navigate={navigate} payload={navPayload} />
+      case 'admins':       return <AdminManagement navigate={navigate} payload={navPayload} />
+      case 'logs':         return <ActivityLogs />
+      default:             return <SuperDashboard navigate={navigate} />
     }
   }
 

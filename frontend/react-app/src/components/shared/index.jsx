@@ -60,9 +60,10 @@ export function Stars({ value = 0, size = 13 }) {
 }
 
 const STATUS_META = {
-  open:   { key: 'open',   color: 'var(--green)',  bg: 'var(--green-bg)' },
-  soon:   { key: 'soon',   color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  closed: { key: 'closed', color: 'var(--red)',    bg: 'var(--red-bg)' },
+  open:    { key: 'open',    color: 'var(--green)',  bg: 'var(--green-bg)' },
+  partial: { key: 'partial', color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  soon:    { key: 'soon',    color: 'var(--orange)', bg: 'var(--orange-bg)' },
+  closed:  { key: 'closed',  color: 'var(--red)',    bg: 'var(--red-bg)' },
 };
 
 export function StatusBadge({ status, lang, pulse = true }) {
@@ -110,12 +111,12 @@ export function FoodTag({ foodKey, count, active, onClick, lang }) {
   );
 }
 
-export function MealTriple({ todaySchedule, lang }) {
-  const meals = [['breakfast', 'sun'], ['lunch', 'bowl'], ['dinner', 'moon']];
+export function MealTriple({ todayMeals, lang }) {
+  const meals = [['navkarshi', 'sun'], ['lunch', 'bowl'], ['chovihar', 'moon']];
   return (
     <div className="meal-triple">
       {meals.map(([k, icon]) => {
-        const on = !todaySchedule?.isClosed && todaySchedule?.meals?.[k]?.available;
+        const on = !todayMeals?.isClosed && todayMeals?.[k]?.enabled;
         return (
           <div key={k} className={'meal-pill' + (on ? ' meal-on' : ' meal-off')}>
             <Icon name={icon} size={14} stroke={2} />
@@ -138,13 +139,19 @@ export function ActionBtn({ icon, label, variant = 'ghost', onClick }) {
 }
 
 export const FACILITY_LABELS = {
-  parking:    { gu: 'પાર્કિંગ', en: 'Parking', icon: 'parking' },
-  water:      { gu: 'પીવાનું પાણી', en: 'Drinking water', icon: 'water' },
-  washroom:   { gu: 'વૉશરૂમ', en: 'Washroom', icon: 'washroom' },
-  dharamshala:{ gu: 'ધર્મશાળા', en: 'Dharamshala', icon: 'bed' },
-  wheelchair: { gu: 'વ્હીલચેર', en: 'Wheelchair access', icon: 'wheelchair' },
-  temple:     { gu: 'દેરાસર નજીક', en: 'Temple nearby', icon: 'temple' },
-  family:     { gu: 'કૌટુંબિક બેઠક', en: 'Family seating', icon: 'family' },
+  parking:     { gu: 'પાર્કિંગ',         en: 'Parking',             icon: 'parking'    },
+  water:       { gu: 'પીવાનું પાણી',     en: 'Drinking water',      icon: 'water'      },
+  boilWater:   { gu: 'ઉકાળેલું પાણી',    en: 'Boiled water',        icon: 'water'      },
+  washroom:    { gu: 'વૉશરૂમ',           en: 'Washroom',            icon: 'washroom'   },
+  dharamshala: { gu: 'ધર્મશાળા',         en: 'Dharamshala',         icon: 'bed'        },
+  wheelchair:  { gu: 'વ્હીલચેર',         en: 'Wheelchair access',   icon: 'wheelchair' },
+  temple:      { gu: 'દેરાસર નજીક',      en: 'Temple nearby',       icon: 'temple'     },
+  family:      { gu: 'કૌટુંબિક બેઠક',    en: 'Family seating',      icon: 'family'     },
+  ekashnu:     { gu: 'એકાસણું',           en: 'Ekasanu',             icon: 'bowl'       },
+  biaasanu:    { gu: 'બિયાસણું',         en: 'Biyasanu',            icon: 'bowl'       },
+  ambil:       { gu: 'આંબિલ',            en: 'Ambil',               icon: 'bowl'       },
+  tirth:       { gu: 'તીર્થ',            en: 'Tirth nearby',        icon: 'temple'     },
+  upashray:    { gu: 'ઉપાશ્રય',          en: 'Upashray',            icon: 'bed'        },
 };
 
 export function Facility({ name, lang }) {
