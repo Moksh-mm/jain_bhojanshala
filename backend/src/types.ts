@@ -194,6 +194,8 @@ export interface CreateBhojanshalaBody {
   upashray?:             boolean
   lift?:                 boolean
   airConditioned?:       boolean
+  noticeEnglish?:        string
+  noticeGujarati?:       string
   isActive?:             boolean
   // Inline admin creation (optional)
   adminName?:            string
