@@ -1,33 +1,32 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  FOODS, SMART_FOODS,
-  computeStatus, servesTodayFood, foodCountsForList, minPriceToday,
+  computeStatus,
   bhojName, bhojArea, bhojCity, bhojNotice,
   L, tr
 } from '../data/data';
 import {
-  Icon, StatusBadge, Stars, Money, Chip, FoodTag,
+  Icon, StatusBadge, Stars, Chip,
   MealTriple, ActionBtn, LangSwitch, ImagePlaceholder
 } from '../components/shared';
 import { useCountUp } from '../hooks/useCountUp';
 import { publicApi } from '../lib/api';
 
 const QUICK_CHIPS = [
-  { key: 'open',        emoji: '🟢', gu: 'હમણાં ખુલ્લું', en: 'Open now' },
-  { key: 'navkarshi',   emoji: '🍵', gu: 'નવકારશી',         en: 'Navkarshi' },
-  { key: 'lunch',       emoji: '🍛', gu: 'બપોરે',           en: 'Lunch' },
-  { key: 'chovihar',    emoji: '🌙', gu: 'ચોવિહાર',         en: 'Chovihar' },
-  { key: 'dharamshala', emoji: '🛏️', gu: 'ધર્મશાળા',       en: 'Dharamshala' },
-  { key: 'tiffin',      emoji: '🥡', gu: 'ટિફિન',           en: 'Tiffin' },
-  { key: 'free',        emoji: '💰', gu: 'નિ:શુલ્ક',        en: 'Free' },
-  { key: 'under100',    emoji: '₹',  gu: '₹100 થી ઓછું',   en: 'Under ₹100' },
+  { key: 'open',        emoji: '🟢', gu: 'હમણાં ખુલ્લું', en: 'Open now'     },
+  { key: 'dharamshala', emoji: '🛏️', gu: 'ધર્મશાળા',       en: 'Dharamshala'  },
+  { key: 'derasar',     emoji: '🛕', gu: 'દેરાસર',          en: 'Derasar'      },
+  { key: 'tiffin',      emoji: '🥡', gu: 'ટિફિન સેવા',      en: 'Tiffin'       },
+  { key: 'boilWater',   emoji: '💧', gu: 'ઉકાળેલું પાણી',   en: 'Boiled water' },
+  { key: 'ekashnu',     emoji: '🍽', gu: 'એકાસણું',          en: 'Ekasanu'      },
+  { key: 'biaasanu',    emoji: '🍽', gu: 'બિયાસણું',        en: 'Biyasanu'     },
+  { key: 'ambil',       emoji: '🥣', gu: 'આંબિલ',           en: 'Ambil'        },
+  { key: 'parking',     emoji: '🅿️', gu: 'પાર્કિંગ',        en: 'Parking'      },
 ];
 
 const SORTS = [
-  { key: 'name',    gu: 'A-Z ક્રમ',       en: 'A-Z order' },
-  { key: 'price',   gu: 'ઓછી કિંમત',      en: 'Lowest price' },
-  { key: 'rating',  gu: 'ઉચ્ચ રેટિંગ',    en: 'Highest rated' },
-  { key: 'open',    gu: 'હમણાં ખુલ્લું',   en: 'Open now' },
+  { key: 'name',   gu: 'A-Z ક્રમ',      en: 'A-Z order'    },
+  { key: 'rating', gu: 'ઉચ્ચ રેટિંગ',   en: 'Highest rated' },
+  { key: 'open',   gu: 'હમણાં ખુલ્લું', en: 'Open now'     },
 ];
 
 function BhojCard({ b, lang, onOpen }) {
@@ -59,24 +58,6 @@ function BhojCard({ b, lang, onOpen }) {
 
         <MealTriple todayMeals={tm} lang={lang} />
 
-        {tm && !tm.isClosed && (
-          <div className="card-prices">
-            {[['navkarshi', 'breakfast'], ['lunch', 'lunch'], ['chovihar', 'dinner']].map(([k, labelKey]) => {
-              const meal = tm[k];
-              const ok   = meal?.enabled;
-              return (
-                <div key={k} className={'pr-col' + (ok ? '' : ' pr-off')}>
-                  <span className="pr-label">{L(labelKey, lang)}</span>
-                  {ok && meal.price != null
-                    ? <Money amount={meal.price} lang={lang} />
-                    : <span className="pr-na">{ok ? L('free', lang) : L('notAvail', lang)}</span>
-                  }
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         <div className="card-actions" onClick={(e) => e.stopPropagation()}>
           {b.directionsUrl
             ? <a href={b.directionsUrl} target="_blank" rel="noopener noreferrer" className="action-btn action-ghost" onClick={e => e.stopPropagation()}><Icon name="nav" size={18} stroke={2} /><span>{L('directions', lang)}</span></a>
@@ -99,7 +80,6 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
   const [error,        setError]        = useState(null);
 
   const [chips,    setChips]    = useState(new Set());
-  const [food,     setFood]     = useState(null);
   const [sort,     setSort]     = useState('name');
   const [city,     setCity]     = useState('');
   const [sortOpen, setSortOpen] = useState(false);
@@ -111,25 +91,20 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const counts = useMemo(() => foodCountsForList(bhojanshalas), [bhojanshalas]);
   const toggleChip = (k) =>
     setChips((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
   const results = useMemo(() => {
     let list = bhojanshalas.slice();
-    if (food) list = list.filter(b => servesTodayFood(b, food));
     if (chips.has('open'))        list = list.filter(b => computeStatus(b.todayMeals) === 'open');
-    if (chips.has('navkarshi'))   list = list.filter(b => b.todayMeals?.navkarshi?.enabled);
-    if (chips.has('lunch'))       list = list.filter(b => b.todayMeals?.lunch?.enabled);
-    if (chips.has('chovihar'))    list = list.filter(b => b.todayMeals?.chovihar?.enabled);
     if (chips.has('dharamshala')) list = list.filter(b => b.facilities?.dharamshalaAvailable);
+    if (chips.has('derasar'))     list = list.filter(b => b.derasarAvailable);
     if (chips.has('tiffin'))      list = list.filter(b => b.tiffin?.available);
-    if (chips.has('free'))        list = list.filter(b => {
-      const tm = b.todayMeals;
-      return tm && !tm.isClosed && [tm.navkarshi, tm.lunch, tm.chovihar]
-        .some(m => m?.enabled && m.price === 0);
-    });
-    if (chips.has('under100'))    list = list.filter(b => minPriceToday(b) < 100);
+    if (chips.has('boilWater'))   list = list.filter(b => b.facilities?.boilWater);
+    if (chips.has('ekashnu'))     list = list.filter(b => b.facilities?.ekashnu);
+    if (chips.has('biaasanu'))    list = list.filter(b => b.facilities?.biaasanu);
+    if (chips.has('ambil'))       list = list.filter(b => b.facilities?.ambil);
+    if (chips.has('parking'))     list = list.filter(b => b.facilities?.parking);
     if (city.trim()) {
       const q = city.trim().toLowerCase();
       list = list.filter(b =>
@@ -140,13 +115,12 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
     }
     const ord = { open: 0, partial: 1, soon: 1, closed: 2 };
     list.sort((a, b) => {
-      if (sort === 'price')  return minPriceToday(a) - minPriceToday(b);
       if (sort === 'rating') return b.rating - a.rating;
       if (sort === 'open')   return (ord[computeStatus(a.todayMeals)] ?? 2) - (ord[computeStatus(b.todayMeals)] ?? 2);
       return (a.nameEnglish || '').localeCompare(b.nameEnglish || '');
     });
     return list;
-  }, [bhojanshalas, chips, food, sort, city]);
+  }, [bhojanshalas, chips, sort, city]);
 
   const resultCount = useCountUp(results.length, 500);
 
@@ -206,31 +180,12 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
           </section>
 
           <section className="sidebar-block">
+            <p className="block-label">{L('quickFilters', lang)}</p>
             <div className="chip-scroll">
               {QUICK_CHIPS.map((c) => (
                 <Chip key={c.key} emoji={c.emoji} active={chips.has(c.key)} onClick={() => toggleChip(c.key)}>
                   {tr(c, lang)}
                 </Chip>
-              ))}
-            </div>
-          </section>
-
-          <section className="sidebar-block smart">
-            <div className="smart-head">
-              <div>
-                <h2 className="block-title">{L('smartTitle', lang)}</h2>
-                <p className="block-sub">{L('smartSub', lang)}</p>
-              </div>
-              {food && (
-                <button className="text-btn" onClick={() => setFood(null)}>{L('clear', lang)}</button>
-              )}
-            </div>
-            <div className="foodtag-grid">
-              {SMART_FOODS.map((k) => (
-                <FoodTag
-                  key={k} foodKey={k} count={counts[k]} active={food === k} lang={lang}
-                  onClick={() => setFood((f) => (f === k ? null : k))}
-                />
               ))}
             </div>
           </section>
@@ -265,13 +220,6 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
               )}
             </div>
           </div>
-
-          {food && (
-            <div className="active-food-banner">
-              <span>{FOODS[food].emoji} {tr(FOODS[food], lang)}</span>
-              <span className="afb-count">{counts[food]} {lang === 'gu' ? 'ભોજનશાળા' : 'bhojanshalas'}</span>
-            </div>
-          )}
 
           <section className="cards">
             {loading && (
