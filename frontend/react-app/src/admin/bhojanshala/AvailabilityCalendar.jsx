@@ -1,122 +1,129 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { adminApi } from '../../lib/api'
 
-// ─── constants ────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────
 
-const MONTH_FULL = [
-  'જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન',
-  'જુલાઈ','ઑગસ્ટ','સપ્ટેમ્બર','ઑક્ટોબર','નવેમ્બર','ડિસેમ્બર',
+const DOW_FULL = ['રવિવાર','સોમવાર','મંગળવાર','બુધવાર','ગુરૂવાર','શુક્રવાર','શનિવાર']
+const DOW_SHORT = ['ર','સો','મ','બ','ગ','શુ','શ']
+const MONTH_FULL = ['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઑગસ્ટ','સપ્ટેમ્બર','ઑક્ટોબર','નવેમ્બર','ડિસેમ્બર']
+const CLOSE_REASONS = [
+  { value: 'FESTIVAL',    label: 'ઉત્સવ / પર્વ' },
+  { value: 'MAINTENANCE', label: 'સ્વચ્છતા / સમારકામ' },
+  { value: 'TEMPORARY',   label: 'અસ્થાયી' },
+  { value: 'OTHER',       label: 'અન્ય' },
 ]
 
-// Monday-first display order
-const DOW_ABBR = ['સો','મ','બ','ગ','શુ','શ','ર'] // Mon…Sun
-const DOW_LABELS = { 0:'રવિ', 1:'સો', 2:'મ', 3:'બ', 4:'ગ', 5:'શુ', 6:'શ' }
-const DOW_FULL   = {
-  0:'રવિવાર', 1:'સોમવાર', 2:'મંગળવાર',
-  3:'બુધવાર', 4:'ગુરૂવાર', 5:'શુક્રવાર', 6:'શનિવાર',
-}
-const DOW_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mon…Sun
+// ─── Helpers ──────────────────────────────────────────────────────
 
-const REASONS = {
-  WEEKLY_HOLIDAY: 'સાપ્તાહિક રજા',
-  FESTIVAL:       'ઉત્સવ / પર્વ',
-  MAINTENANCE:    'સ્વચ્છતા / સમારકામ',
-  TEMPORARY:      'અસ્થાયી',
-  OTHER:          'અન્ય',
+function toDayStr(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
-// ─── helpers ──────────────────────────────────────────────────────
-
-function toMonthStr(year, month) {
-  return `${year}-${String(month + 1).padStart(2, '0')}`
+function toMonthStr(y, m) {
+  return `${y}-${String(m + 1).padStart(2, '0')}`
 }
 
-function toDayStr(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate()
-}
-
-function getEffective(dateStr, entries, rules) {
+function getEffective(dateStr, entries, rules, defaults) {
   const entry = entries.find(e => e.date === dateStr)
   if (entry) return { ...entry, source: 'override' }
-
-  const dow = new Date(dateStr + 'T00:00:00').getDay() // 0=Sun, 1=Mon…
+  const dow = new Date(dateStr + 'T00:00:00').getDay()
   const rule = rules.find(r => r.dayOfWeek === dow)
   if (rule) return {
     isClosed:         rule.isClosed,
-    closedReason:     rule.closedReason,
     navkarshiEnabled: rule.navkarshiEnabled,
+    ayambilEnabled:   rule.ayambilEnabled ?? true,
     lunchEnabled:     rule.lunchEnabled,
     choviharEnabled:  rule.choviharEnabled,
     source: 'recurring',
   }
-
   return {
     isClosed:         false,
-    navkarshiEnabled: true,
-    lunchEnabled:     true,
-    choviharEnabled:  true,
+    navkarshiEnabled: defaults.navkarshiAvailable,
+    ayambilEnabled:   defaults.ayambilShalaEnabled,
+    lunchEnabled:     defaults.lunchAvailable,
+    choviharEnabled:  defaults.choviharAvailable,
     source: 'default',
   }
 }
 
-// ─── GujToggle (local copy) ───────────────────────────────────────
+// ─── Primitive components ─────────────────────────────────────────
 
-function GujToggle({ checked, onChange }) {
+function BigToggle({ checked, onChange }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      style={{
-        width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
-        background: checked ? '#e87722' : '#d1cdc7',
-        position: 'relative', flexShrink: 0, transition: 'background 0.2s',
-      }}
-    >
+    <button type="button" onClick={() => onChange(!checked)} style={{
+      width: 58, height: 32, borderRadius: 16, border: 'none', cursor: 'pointer',
+      background: checked ? '#e87722' : '#d1cdc7',
+      position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+    }}>
       <span style={{
-        position: 'absolute', top: 3,
-        left: checked ? 25 : 3,
-        width: 20, height: 20, borderRadius: '50%',
-        background: '#fff', transition: 'left 0.2s',
-        boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+        position: 'absolute', top: 4,
+        left: checked ? 28 : 4,
+        width: 24, height: 24, borderRadius: '50%', background: '#fff',
+        transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,.28)',
       }} />
     </button>
   )
 }
 
-// ─── MealBlock ────────────────────────────────────────────────────
-
-function MealBlock({ icon, title, enabled, onToggle, start, onStart, end, onEnd, price, onPrice }) {
+function Card({ children, style = {} }) {
   return (
-    <div className="gj-cal-meal-block">
-      <div className={`gj-cal-toggle-row ${enabled ? 'open' : ''}`}
-        style={{ padding: '10px 12px', background: '#faf7f2', borderBottom: enabled ? '1px solid #ede8e0' : 'none' }}>
-        <span className="gj-cal-toggle-label">{icon} {title}</span>
-        <GujToggle checked={enabled} onChange={onToggle} />
-      </div>
-      {enabled && (
-        <div className="gj-cal-meal-body">
-          <div className="gj-grid-2">
-            <div className="gj-field">
-              <label className="gj-label" style={{ fontSize: 11 }}>શરૂ</label>
-              <input className="gj-input" type="time" value={start || ''}
-                onChange={e => onStart(e.target.value)} />
-            </div>
-            <div className="gj-field">
-              <label className="gj-label" style={{ fontSize: 11 }}>સમાપ્ત</label>
-              <input className="gj-input" type="time" value={end || ''}
-                onChange={e => onEnd(e.target.value)} />
-            </div>
+    <div style={{
+      background: '#fff', borderRadius: 20, padding: '22px 20px', marginBottom: 16,
+      boxShadow: '0 1px 8px rgba(0,0,0,.07)', border: '1px solid #f0e8d5', ...style,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function SectionTitle({ gu, en }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: '#1c1917', lineHeight: 1.3 }}>{gu}</div>
+      {en && <div style={{ fontSize: 12, color: '#a8a29e', marginTop: 3 }}>{en}</div>}
+    </div>
+  )
+}
+
+// ─── Meal row for default-pattern section ─────────────────────────
+
+function MealRow({ icon, guName, enName, available, onChange, startTime, onStart, endTime, onEnd, price, onPrice }) {
+  return (
+    <div style={{
+      borderRadius: 16, border: `2px solid ${available ? '#e87722' : '#e7e5e4'}`,
+      background: available ? '#fffbf5' : '#faf9f8',
+      padding: '16px 18px', marginBottom: 12, transition: 'all 0.2s',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 28 }}>{icon}</span>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#1c1917' }}>{guName}</div>
+            <div style={{ fontSize: 12, color: '#a8a29e' }}>{enName}</div>
           </div>
-          <div className="gj-field" style={{ marginTop: 8 }}>
-            <label className="gj-label" style={{ fontSize: 11 }}>ભાવ (₹, 0 = મફત)</label>
-            <div className="gj-price-wrap">
-              <span className="gj-price-sym">₹</span>
-              <input className="gj-price-input" type="number" min="0" value={price ?? ''}
-                onChange={e => onPrice(e.target.value)} />
+        </div>
+        <BigToggle checked={available} onChange={onChange} />
+      </div>
+
+      {available && (
+        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 13, color: '#78716c', marginBottom: 7, fontWeight: 600 }}>⏱ શરૂ સમય</div>
+            <input type="time" className="gj-input" value={startTime || ''} onChange={e => onStart(e.target.value)} />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, color: '#78716c', marginBottom: 7, fontWeight: 600 }}>⏹ સમાપ્તિ</div>
+            <input type="time" className="gj-input" value={endTime || ''} onChange={e => onEnd(e.target.value)} />
+          </div>
+          <div style={{ gridColumn: '1/-1' }}>
+            <div style={{ fontSize: 13, color: '#78716c', marginBottom: 7, fontWeight: 600 }}>₹ ભાવ</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input
+                type="number" min="0" className="gj-input"
+                value={price ?? 0} onChange={e => onPrice(Number(e.target.value) || 0)}
+                style={{ maxWidth: 130 }}
+              />
+              <span style={{ fontSize: 13, color: '#a8a29e' }}>0 = નિ:શુલ્ક</span>
             </div>
           </div>
         </div>
@@ -125,55 +132,37 @@ function MealBlock({ icon, title, enabled, onToggle, start, onStart, end, onEnd,
   )
 }
 
-// ─── DayModal ─────────────────────────────────────────────────────
+// ─── Exception modal (add / edit special day) ─────────────────────
 
-function DayModal({ dateStr, initial, onSave, onReset, onClose }) {
-  const [data, setData] = useState({
-    isClosed:         initial.isClosed         ?? false,
-    closedReason:     initial.closedReason      || '',
-    closedNote:       initial.closedNote        || '',
-    specialNotice:    initial.specialNotice     || '',
-    navkarshiEnabled: initial.navkarshiEnabled  ?? true,
-    navkarshiStart:   initial.navkarshiStart    || '',
-    navkarshiEnd:     initial.navkarshiEnd      || '',
-    navkarshiPrice:   initial.navkarshiPrice    ?? '',
-    lunchEnabled:     initial.lunchEnabled      ?? true,
-    lunchStart:       initial.lunchStart        || '',
-    lunchEnd:         initial.lunchEnd          || '',
-    lunchPrice:       initial.lunchPrice        ?? '',
-    choviharEnabled:  initial.choviharEnabled   ?? true,
-    choviharStart:    initial.choviharStart     || '',
-    choviharEnd:      initial.choviharEnd       || '',
-    choviharPrice:    initial.choviharPrice     ?? '',
+function ExceptionModal({ initial, onSave, onDelete, onClose }) {
+  const today    = new Date()
+  const todayStr = toDayStr(today.getFullYear(), today.getMonth(), today.getDate())
+  const isEdit   = Object.keys(initial || {}).length > 1
+
+  const [form, setForm] = useState({
+    date:             initial?.date || todayStr,
+    isClosed:         initial?.isClosed        ?? true,
+    closedReason:     initial?.closedReason    || '',
+    navkarshiEnabled: initial?.navkarshiEnabled ?? true,
+    ayambilEnabled:   initial?.ayambilEnabled   ?? true,
+    lunchEnabled:     initial?.lunchEnabled     ?? true,
+    choviharEnabled:  initial?.choviharEnabled  ?? true,
+    specialNotice:    initial?.specialNotice    || '',
   })
-  const [saving,    setSaving]    = useState(false)
-  const [resetting, setResetting] = useState(false)
-  const set = (k, v) => setData(d => ({ ...d, [k]: v }))
-
-  const isOverride = initial.source === 'override'
-  const jsDate   = new Date(dateStr + 'T00:00:00')
-  const dowName  = ['ર','સો','મ','બ','ગ','શુ','શ'][jsDate.getDay()]
-  const dayNum   = jsDate.getDate()
-  const monthName = MONTH_FULL[jsDate.getMonth()]
+  const [saving,   setSaving]   = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   async function handleSave() {
     setSaving(true)
-    try {
-      await onSave(dateStr, {
-        ...data,
-        navkarshiPrice: data.navkarshiPrice !== '' ? Number(data.navkarshiPrice) : null,
-        lunchPrice:     data.lunchPrice     !== '' ? Number(data.lunchPrice)     : null,
-        choviharPrice:  data.choviharPrice  !== '' ? Number(data.choviharPrice)  : null,
-      })
-    } finally {
-      setSaving(false)
-    }
+    try { await onSave(form); onClose() }
+    finally { setSaving(false) }
   }
 
-  async function handleReset() {
-    setResetting(true)
-    try { await onReset(dateStr) }
-    finally { setResetting(false) }
+  async function handleDelete() {
+    setDeleting(true)
+    try { await onDelete(form.date); onClose() }
+    finally { setDeleting(false) }
   }
 
   return (
@@ -181,83 +170,124 @@ function DayModal({ dateStr, initial, onSave, onReset, onClose }) {
       <div className="gj-modal-sheet">
         <div className="gj-sheet-handle" />
         <div className="gj-sheet-title">
-          <div>
-            <div className="gj-sheet-date">{dowName}, {dayNum} {monthName}</div>
-            <div className={`gj-sheet-src ${initial.source}`}>
-              {initial.source === 'override'  ? '✎ ચોક્કસ ફેરફાર' :
-               initial.source === 'recurring' ? '↻ સાપ્તાહિક નિયમ' : '● ડિફૉલ્ટ'}
-            </div>
+          <div className="gj-sheet-date">
+            {isEdit ? 'ફેરફાર સુધારો' : 'ખાસ દિવસ ઉમેરો'}
           </div>
           <button className="gj-sheet-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="gj-sheet-body">
-          <div className="gj-cal-toggle-row">
-            <span className="gj-cal-toggle-label">🔒 આખો દિવસ બંધ</span>
-            <GujToggle checked={data.isClosed} onChange={v => set('isClosed', v)} />
+        <div className="gj-sheet-body" style={{ paddingBottom: 24 }}>
+
+          {/* Date picker */}
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#44403c', marginBottom: 10 }}>📅 તારીખ</div>
+            <input
+              type="date" className="gj-input"
+              value={form.date} min={todayStr}
+              onChange={e => set('date', e.target.value)}
+              disabled={isEdit}
+              style={{ fontSize: 17, padding: '13px 16px' }}
+            />
           </div>
 
-          {data.isClosed && (
-            <>
-              <div className="gj-field" style={{ marginTop: 12 }}>
-                <label className="gj-label">કારણ</label>
-                <select className="gj-input gj-select" value={data.closedReason}
-                  onChange={e => set('closedReason', e.target.value)}>
-                  <option value="">-- કારણ પસંદ કરો --</option>
-                  {Object.entries(REASONS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
+          {/* Closed / Open big toggle */}
+          <div
+            onClick={() => set('isClosed', !form.isClosed)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: form.isClosed ? '#fff5f5' : '#f0fdf4',
+              border: `2px solid ${form.isClosed ? '#fca5a5' : '#86efac'}`,
+              borderRadius: 16, padding: '18px 20px', marginBottom: 20, cursor: 'pointer',
+            }}>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#1c1917' }}>
+                {form.isClosed ? '🔴 આખો દિવસ બંધ છે?' : '🟢 ભોજન ઉપલબ્ધ છે'}
               </div>
-              <div className="gj-field" style={{ marginTop: 10 }}>
-                <label className="gj-label">નોંધ (વૈકલ્પિક)</label>
-                <input className="gj-input" value={data.closedNote}
-                  placeholder="ઉ.દ. ભાઈ-ત્રીજ ઉત્સવ"
-                  onChange={e => set('closedNote', e.target.value)} />
+              <div style={{ fontSize: 12, color: '#78716c', marginTop: 3 }}>
+                {form.isClosed ? 'tap to mark as open' : 'tap to close this day'}
               </div>
-            </>
+            </div>
+            <BigToggle checked={form.isClosed} onChange={v => set('isClosed', v)} />
+          </div>
+
+          {/* If closed: reason */}
+          {form.isClosed && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#44403c', marginBottom: 12 }}>📝 કારણ</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {CLOSE_REASONS.map(r => (
+                  <button key={r.value} onClick={() => set('closedReason', r.value)} style={{
+                    padding: '14px 12px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                    fontSize: 14, fontWeight: form.closedReason === r.value ? 700 : 500,
+                    background: form.closedReason === r.value ? '#e87722' : '#f5f5f4',
+                    color: form.closedReason === r.value ? '#fff' : '#44403c',
+                    transition: 'all 0.15s', lineHeight: 1.3,
+                  }}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
-          {!data.isClosed && (
-            <>
-              <div style={{ marginTop: 12 }}>
-                <MealBlock icon="🌅" title="નવકારશી"
-                  enabled={data.navkarshiEnabled} onToggle={v => set('navkarshiEnabled', v)}
-                  start={data.navkarshiStart}    onStart={v => set('navkarshiStart', v)}
-                  end={data.navkarshiEnd}        onEnd={v   => set('navkarshiEnd', v)}
-                  price={data.navkarshiPrice}    onPrice={v => set('navkarshiPrice', v)} />
-
-                <MealBlock icon="☀️" title="ભોજન (બપોર)"
-                  enabled={data.lunchEnabled} onToggle={v => set('lunchEnabled', v)}
-                  start={data.lunchStart}     onStart={v => set('lunchStart', v)}
-                  end={data.lunchEnd}         onEnd={v   => set('lunchEnd', v)}
-                  price={data.lunchPrice}     onPrice={v => set('lunchPrice', v)} />
-
-                <MealBlock icon="🌙" title="ચોવિહાર"
-                  enabled={data.choviharEnabled} onToggle={v => set('choviharEnabled', v)}
-                  start={data.choviharStart}     onStart={v => set('choviharStart', v)}
-                  end={data.choviharEnd}         onEnd={v   => set('choviharEnd', v)}
-                  price={data.choviharPrice}     onPrice={v => set('choviharPrice', v)} />
+          {/* If open: which meals */}
+          {!form.isClosed && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#44403c', marginBottom: 12 }}>
+                કયા ભોજન ઉપલબ્ધ રહેશે?
               </div>
-            </>
+              {[
+                { k: 'navkarshiEnabled', icon: '🌅', label: 'નવકારશી' },
+                { k: 'ayambilEnabled', icon: '🥣', label: 'આયંબિલ' },
+                { k: 'lunchEnabled',     icon: '🍛',  label: 'બપોરે ભોજન' },
+                { k: 'choviharEnabled',  icon: '🌙',  label: 'ચોવિહાર' },
+              ].map(({ k, icon, label }) => (
+                <div key={k}
+                  onClick={() => set(k, !form[k])}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '16px 18px', borderRadius: 14, cursor: 'pointer', marginBottom: 10,
+                    background: form[k] ? '#fffbf5' : '#faf9f8',
+                    border: `2px solid ${form[k] ? '#e87722' : '#e7e5e4'}`,
+                  }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: '#1c1917' }}>{icon} {label}</span>
+                  <BigToggle checked={form[k]} onChange={v => set(k, v)} />
+                </div>
+              ))}
+            </div>
           )}
 
-          <div className="gj-field" style={{ marginTop: 16 }}>
-            <label className="gj-label">📢 વિશેષ સૂચના (આ દિવસ)</label>
-            <textarea className="gj-textarea" rows={2} value={data.specialNotice}
-              placeholder="ઉ.દ. આજે ખિચડી - ₹10"
-              onChange={e => set('specialNotice', e.target.value)} />
+          {/* Special notice */}
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#44403c', marginBottom: 8 }}>
+              📢 વિશેષ સૂચના (વૈકલ્પિક)
+            </div>
+            <textarea
+              className="gj-textarea" rows={2}
+              value={form.specialNotice}
+              placeholder="ઉ.દ. આજે ખિચડી ₹10 — ઉ.દ. માત્ર ભક્ત ઉપલબ્ધ"
+              onChange={e => set('specialNotice', e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="gj-sheet-footer">
-          {isOverride && (
-            <button className="gj-cal-reset-btn" onClick={handleReset} disabled={resetting}>
-              {resetting ? '...' : '↺ રિસેટ'}
+        <div className="gj-sheet-footer" style={{ gap: 10 }}>
+          {isEdit && (
+            <button onClick={handleDelete} disabled={deleting} style={{
+              padding: '15px 20px', borderRadius: 14,
+              border: '2px solid #fca5a5', background: '#fff5f5',
+              color: '#dc2626', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+            }}>
+              {deleting ? '...' : '🗑 દૂર કરો'}
             </button>
           )}
-          <button className="gj-cal-save-btn" onClick={handleSave} disabled={saving}>
-            {saving ? 'સાચવી...' : '💾 સાચવો'}
+          <button onClick={handleSave} disabled={saving} style={{
+            flex: 1, padding: '16px', borderRadius: 14, border: 'none',
+            background: saving ? '#d1cdc7' : '#e87722',
+            color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer',
+            transition: 'background 0.2s',
+          }}>
+            {saving ? 'સાચવી રહ્યા...' : '✓ સાચવો'}
           </button>
         </div>
       </div>
@@ -265,174 +295,144 @@ function DayModal({ dateStr, initial, onSave, onReset, onClose }) {
   )
 }
 
-// ─── RecurringRulesPanel ──────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────
 
-function RecurringRulesPanel({ rules, onUpsert, onDelete }) {
-  const [editingDow, setEditingDow] = useState(null)
-  const [form,       setForm]       = useState(null)
-  const [saving,     setSaving]     = useState(false)
-  const [deleting,   setDeleting]   = useState(null)
+export default function AvailabilityCalendar({ bhoj, onSaved }) {
+  const today    = new Date()
+  const todayStr = toDayStr(today.getFullYear(), today.getMonth(), today.getDate())
 
-  function openEdit(dow) {
-    const rule = rules.find(r => r.dayOfWeek === dow)
-    setForm(rule ? {
-      dayOfWeek:        rule.dayOfWeek,
-      isClosed:         rule.isClosed,
-      closedReason:     rule.closedReason || '',
-      navkarshiEnabled: rule.navkarshiEnabled,
-      lunchEnabled:     rule.lunchEnabled,
-      choviharEnabled:  rule.choviharEnabled,
-    } : {
-      dayOfWeek:        dow,
-      isClosed:         false,
-      closedReason:     '',
-      navkarshiEnabled: true,
-      lunchEnabled:     true,
-      choviharEnabled:  true,
-    })
-    setEditingDow(dow)
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await onUpsert({ ...form, closedReason: form.closedReason || null })
-      setEditingDow(null)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleDelete(dow) {
-    setDeleting(dow)
-    try { await onDelete(dow) }
-    finally { setDeleting(null) }
-  }
-
-  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  return (
-    <div className="gj-cal-rules-wrap">
-      <div className="gj-cal-rules-title">↻ સાપ્તાહિક નિયમો</div>
-      <div className="gj-cal-rules-hint">
-        દર અઠવાડિયે લાગુ પડતા નિયમો. ચોક્કસ તારીખ ઓવરરાઇડ કરી શકે.
-      </div>
-
-      <div className="gj-cal-rules-grid">
-        {DOW_ORDER.map(dow => {
-          const rule = rules.find(r => r.dayOfWeek === dow)
-          return (
-            <div key={dow} className={`gj-cal-rule-card ${rule ? (rule.isClosed ? 'closed' : 'partial') : ''}`}>
-              <div className="gj-cal-rule-dow">{DOW_LABELS[dow]}</div>
-              <div className="gj-cal-rule-status">
-                {rule ? (
-                  rule.isClosed ? (
-                    <span style={{ fontSize: 10, color: '#d05858' }}>🔒 બંધ</span>
-                  ) : (
-                    <div className="gj-cal-dots sm">
-                      <span className={`gj-dot ${rule.navkarshiEnabled ? 'on' : 'off'}`}>ન</span>
-                      <span className={`gj-dot ${rule.lunchEnabled     ? 'on' : 'off'}`}>બ</span>
-                      <span className={`gj-dot ${rule.choviharEnabled  ? 'on' : 'off'}`}>ચ</span>
-                    </div>
-                  )
-                ) : (
-                  <span className="gj-cal-rule-default">ડિ.</span>
-                )}
-              </div>
-              <div className="gj-cal-rule-actions">
-                <button className="gj-cal-rule-btn edit" onClick={() => openEdit(dow)}>✎</button>
-                {rule && (
-                  <button className="gj-cal-rule-btn del" onClick={() => handleDelete(dow)}
-                    disabled={deleting === dow}>✕</button>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {editingDow !== null && form && (
-        <div className="gj-modal-overlay" onClick={e => e.target === e.currentTarget && setEditingDow(null)}>
-          <div className="gj-modal-sheet" style={{ maxHeight: '75vh' }}>
-            <div className="gj-sheet-handle" />
-            <div className="gj-sheet-title">
-              <div className="gj-sheet-date">{DOW_FULL[editingDow]} — સાપ્તાહિક</div>
-              <button className="gj-sheet-close" onClick={() => setEditingDow(null)}>✕</button>
-            </div>
-            <div className="gj-sheet-body">
-              <div className="gj-cal-toggle-row">
-                <span className="gj-cal-toggle-label">🔒 દર {DOW_LABELS[editingDow]} બંધ</span>
-                <GujToggle checked={form.isClosed} onChange={v => setF('isClosed', v)} />
-              </div>
-              {form.isClosed && (
-                <div className="gj-field" style={{ marginTop: 12 }}>
-                  <label className="gj-label">કારણ</label>
-                  <select className="gj-input gj-select" value={form.closedReason}
-                    onChange={e => setF('closedReason', e.target.value)}>
-                    <option value="">-- કારણ --</option>
-                    {Object.entries(REASONS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {!form.isClosed && (
-                <>
-                  <div className="gj-cal-toggle-row" style={{ marginTop: 14 }}>
-                    <span className="gj-cal-toggle-label">🌅 નવકારશી</span>
-                    <GujToggle checked={form.navkarshiEnabled} onChange={v => setF('navkarshiEnabled', v)} />
-                  </div>
-                  <div className="gj-cal-toggle-row">
-                    <span className="gj-cal-toggle-label">☀️ ભોજન</span>
-                    <GujToggle checked={form.lunchEnabled} onChange={v => setF('lunchEnabled', v)} />
-                  </div>
-                  <div className="gj-cal-toggle-row">
-                    <span className="gj-cal-toggle-label">🌙 ચોવિહાર</span>
-                    <GujToggle checked={form.choviharEnabled} onChange={v => setF('choviharEnabled', v)} />
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="gj-sheet-footer">
-              <button className="gj-cal-save-btn" onClick={handleSave} disabled={saving}>
-                {saving ? 'સાચવી...' : '💾 સાચવો'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── AvailabilityCalendar ─────────────────────────────────────────
-
-export default function AvailabilityCalendar({ bhojId }) {
-  const today = new Date()
   const [year,        setYear]        = useState(today.getFullYear())
   const [month,       setMonth]       = useState(today.getMonth())
   const [entries,     setEntries]     = useState([])
   const [rules,       setRules]       = useState([])
-  const [loading,     setLoading]     = useState(false)
-  const [modal,       setModal]       = useState(null)
-  const [err,         setErr]         = useState('')
+  const [calLoading,  setCalLoading]  = useState(true)
   const [needMigrate, setNeedMigrate] = useState(false)
+  const [exceptModal, setExceptModal] = useState(null)
 
-  const fetchMonth = useCallback(async () => {
-    setLoading(true); setErr('')
+  // Default weekly pattern — mirrors bhojanshala meal fields
+  const [defaults, setDefaults] = useState({
+    navkarshiAvailable:  bhoj.navkarshi?.available ?? true,
+    navkarshiStartTime:  bhoj.navkarshi?.startTime || '',
+    navkarshiEndTime:    bhoj.navkarshi?.endTime   || '',
+    navkarshiPrice:      bhoj.navkarshi?.price     ?? 0,
+    ayambilShalaEnabled: bhoj.ayambil?.available   ?? false,
+    ayambilStartTime:    bhoj.ayambil?.startTime   || '',
+    ayambilEndTime:      bhoj.ayambil?.endTime     || '',
+    ayambilPrice:        bhoj.ayambil?.price       ?? 0,
+    lunchAvailable:     bhoj.lunch?.available     ?? true,
+    lunchStartTime:     bhoj.lunch?.startTime     || '',
+    lunchEndTime:       bhoj.lunch?.endTime       || '',
+    lunchPrice:         bhoj.lunch?.price         ?? 0,
+    choviharAvailable:  bhoj.chovihar?.available  ?? false,
+    choviharStartTime:  bhoj.chovihar?.startTime  || '',
+    choviharEndTime:    bhoj.chovihar?.endTime    || '',
+    choviharPrice:      bhoj.chovihar?.price      ?? 0,
+  })
+  const [savingDefaults, setSavingDefaults] = useState(false)
+  const [savedDefaults,  setSavedDefaults]  = useState(false)
+  const [errDefaults,    setErrDefaults]    = useState('')
+
+  const [savingWeekly, setSavingWeekly] = useState(false)
+
+  const setD = (k, v) => setDefaults(p => ({ ...p, [k]: v }))
+
+  // The single isClosed recurring rule represents "weekly off day"
+  const weeklyOffRule = rules.find(r => r.isClosed)
+  const weeklyOffDay  = weeklyOffRule?.dayOfWeek ?? null
+
+  // ── Fetch calendar data ──────────────────────────────────────────
+
+  const fetchCalendar = useCallback(async () => {
+    setCalLoading(true)
     try {
       const res = await adminApi.getAvailability(toMonthStr(year, month))
       setEntries(res.entries || [])
       setRules(res.recurringRules || [])
       setNeedMigrate(!!res.migrationRequired)
-    } catch (e) {
-      setErr(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch { /* silent */ }
+    setCalLoading(false)
   }, [year, month])
 
-  useEffect(() => { fetchMonth() }, [fetchMonth])
+  useEffect(() => { fetchCalendar() }, [fetchCalendar])
+
+  // ── Save default pattern ─────────────────────────────────────────
+
+  async function saveDefaults() {
+    setSavingDefaults(true); setErrDefaults(''); setSavedDefaults(false)
+    try {
+      await adminApi.updateMyBhojanshala({
+        navkarshiAvailable:  defaults.navkarshiAvailable,
+        navkarshiStartTime:  defaults.navkarshiStartTime,
+        navkarshiEndTime:    defaults.navkarshiEndTime,
+        navkarshiPrice:      defaults.navkarshiPrice,
+        ayambilShalaEnabled: defaults.ayambilShalaEnabled,
+        ayambilStartTime:    defaults.ayambilStartTime,
+        ayambilEndTime:      defaults.ayambilEndTime,
+        ayambilPrice:        defaults.ayambilPrice,
+        lunchAvailable:      defaults.lunchAvailable,
+        lunchStartTime:     defaults.lunchStartTime,
+        lunchEndTime:       defaults.lunchEndTime,
+        lunchPrice:         defaults.lunchPrice,
+        choviharAvailable:  defaults.choviharAvailable,
+        choviharStartTime:  defaults.choviharStartTime,
+        choviharEndTime:    defaults.choviharEndTime,
+        choviharPrice:      defaults.choviharPrice,
+      })
+      onSaved?.()
+      setSavedDefaults(true)
+      setTimeout(() => setSavedDefaults(false), 4000)
+    } catch (e) {
+      setErrDefaults(e.message)
+    }
+    setSavingDefaults(false)
+  }
+
+  // ── Select weekly off day ────────────────────────────────────────
+
+  async function selectWeeklyOff(dow) {
+    setSavingWeekly(true)
+    try {
+      if (weeklyOffDay !== null) {
+        await adminApi.deleteRecurringRule(weeklyOffDay)
+      }
+      if (dow !== null) {
+        await adminApi.upsertRecurringRule({
+          dayOfWeek:        dow,
+          isClosed:         true,
+          closedReason:     'WEEKLY_HOLIDAY',
+          navkarshiEnabled: true,
+          ayambilEnabled:   true,
+          lunchEnabled:     true,
+          choviharEnabled:  true,
+        })
+      }
+      await fetchCalendar()
+    } catch { /* silent */ }
+    setSavingWeekly(false)
+  }
+
+  // ── Exception CRUD ───────────────────────────────────────────────
+
+  async function saveException(form) {
+    await adminApi.upsertAvailability({
+      date:             form.date,
+      isClosed:         form.isClosed,
+      closedReason:     form.closedReason || null,
+      specialNotice:    form.specialNotice || null,
+      navkarshiEnabled: form.navkarshiEnabled,
+      ayambilEnabled:   form.ayambilEnabled,
+      lunchEnabled:     form.lunchEnabled,
+      choviharEnabled:  form.choviharEnabled,
+    })
+    await fetchCalendar()
+  }
+
+  async function deleteException(dateStr) {
+    await adminApi.deleteAvailability(dateStr)
+    await fetchCalendar()
+  }
+
+  // ── Calendar grid data ───────────────────────────────────────────
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -443,135 +443,311 @@ export default function AvailabilityCalendar({ bhojId }) {
     else setMonth(m => m + 1)
   }
 
-  const daysInMonth  = getDaysInMonth(year, month)
-  const startOffset  = (new Date(year, month, 1).getDay() + 6) % 7 // Monday-first
+  const daysInMonth  = new Date(year, month + 1, 0).getDate()
+  const startOffset  = new Date(year, month, 1).getDay() // 0=Sun
   const cells = []
   for (let i = 0; i < startOffset; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-  while (cells.length % 7 !== 0) cells.push(null)
 
-  const todayStr = toDayStr(today.getFullYear(), today.getMonth(), today.getDate())
-
-  function openDay(day) {
-    const dateStr = toDayStr(year, month, day)
-    const eff = getEffective(dateStr, entries, rules)
-    setModal({ dateStr, data: eff })
+  function cellStatus(dateStr) {
+    const eff = getEffective(dateStr, entries, rules, defaults)
+    if (eff.isClosed) return 'closed'
+    const enabled = [eff.navkarshiEnabled, eff.ayambilEnabled, eff.lunchEnabled, eff.choviharEnabled].filter(Boolean).length
+    if (enabled === 0) return 'closed'
+    const expected = [defaults.navkarshiAvailable, defaults.ayambilShalaEnabled, defaults.lunchAvailable, defaults.choviharAvailable].filter(Boolean).length
+    return enabled >= expected ? 'open' : 'partial'
   }
 
-  async function handleSave(dateStr, data) {
-    await adminApi.upsertAvailability({ date: dateStr, ...data })
-    await fetchMonth()
-    setModal(null)
-  }
+  // Upcoming exceptions in next 30 days
+  const upcomingExceptions = entries
+    .filter(e => e.date >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6)
 
-  async function handleReset(dateStr) {
-    await adminApi.deleteAvailability(dateStr)
-    await fetchMonth()
-    setModal(null)
-  }
-
-  async function handleUpsertRule(rule) {
-    await adminApi.upsertRecurringRule(rule)
-    await fetchMonth()
-  }
-
-  async function handleDeleteRule(dayOfWeek) {
-    await adminApi.deleteRecurringRule(dayOfWeek)
-    await fetchMonth()
-  }
+  // ── Render ───────────────────────────────────────────────────────
 
   return (
-    <div className="gj-cal-wrap">
-      {/* Header */}
-      <div className="gj-cal-header">
-        <button className="gj-cal-nav" onClick={prevMonth}>‹</button>
-        <div className="gj-cal-title">
-          {loading ? '...' : `${MONTH_FULL[month]} ${year}`}
-        </div>
-        <button className="gj-cal-nav" onClick={nextMonth}>›</button>
-      </div>
-
+    <div className="gj-content">
       {needMigrate && (
         <div style={{
-          margin: '12px 16px', padding: '12px 16px',
+          marginBottom: 16, padding: '14px 18px',
           background: '#FFF9E6', border: '1px solid #F59E0B',
-          borderRadius: 10, fontSize: 13, color: '#92400E', lineHeight: 1.5,
+          borderRadius: 14, fontSize: 13, color: '#92400E',
         }}>
-          ⚠️ <strong>ડેટાબેઝ ટેબલ બનાવ્યા નથી.</strong><br />
-          Supabase SQL Editor માં <code>migration.sql</code> ચલાવો, પછી બેકએન્ડ પુનઃ શરૂ કરો.
+          ⚠️ <strong>ઉપલબ્ધતા ડેટાબેઝ બનાવ્યો નથી.</strong> Super Admin ને migration ચલાવવા જણાવો. ત્યાં સુધી ઉપરનો "સામાન્ય સમય" વિભાગ ચાલશે.
         </div>
       )}
 
-      {err && (
-        <div style={{ padding: '10px 16px', color: '#d05858', fontSize: 13 }}>⚠ {err}</div>
-      )}
+      {/* ══════════ 1. DEFAULT WEEKLY PATTERN ══════════ */}
+      <Card>
+        <SectionTitle gu="સામાન્ય દિવસોમાં શું ઉપલબ્ધ છે?" en="What is usually available?" />
 
-      {/* Calendar grid */}
-      <div className="gj-cal-grid">
-        {DOW_ABBR.map(d => (
-          <div key={d} className="gj-cal-dow">{d}</div>
-        ))}
+        <MealRow
+          icon="🌅" guName="નવકારશી" enName="Navkarshi"
+          available={defaults.navkarshiAvailable} onChange={v => setD('navkarshiAvailable', v)}
+          startTime={defaults.navkarshiStartTime} onStart={v => setD('navkarshiStartTime', v)}
+          endTime={defaults.navkarshiEndTime}     onEnd={v => setD('navkarshiEndTime', v)}
+          price={defaults.navkarshiPrice}         onPrice={v => setD('navkarshiPrice', v)}
+        />
+        <MealRow
+          icon="🥣" guName="આયંબિલ" enName="Ayambil"
+          available={defaults.ayambilShalaEnabled} onChange={v => setD('ayambilShalaEnabled', v)}
+          startTime={defaults.ayambilStartTime} onStart={v => setD('ayambilStartTime', v)}
+          endTime={defaults.ayambilEndTime}     onEnd={v => setD('ayambilEndTime', v)}
+          price={defaults.ayambilPrice}         onPrice={v => setD('ayambilPrice', v)}
+        />
+        <MealRow
+          icon="🍛" guName="બપોરે ભોજન" enName="Lunch"
+          available={defaults.lunchAvailable} onChange={v => setD('lunchAvailable', v)}
+          startTime={defaults.lunchStartTime} onStart={v => setD('lunchStartTime', v)}
+          endTime={defaults.lunchEndTime}     onEnd={v => setD('lunchEndTime', v)}
+          price={defaults.lunchPrice}         onPrice={v => setD('lunchPrice', v)}
+        />
+        <MealRow
+          icon="🌙" guName="ચોવિહાર" enName="Chovihar"
+          available={defaults.choviharAvailable} onChange={v => setD('choviharAvailable', v)}
+          startTime={defaults.choviharStartTime} onStart={v => setD('choviharStartTime', v)}
+          endTime={defaults.choviharEndTime}     onEnd={v => setD('choviharEndTime', v)}
+          price={defaults.choviharPrice}         onPrice={v => setD('choviharPrice', v)}
+        />
 
-        {cells.map((day, i) => {
-          if (!day) return <div key={`b-${i}`} className="gj-cal-cell blank" />
-          const dateStr = toDayStr(year, month, day)
-          const eff     = getEffective(dateStr, entries, rules)
-          const isToday = dateStr === todayStr
-          const isPast  = dateStr < todayStr
+        {errDefaults && (
+          <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{errDefaults}</div>
+        )}
 
-          return (
-            <div
-              key={dateStr}
-              className={[
-                'gj-cal-cell day',
-                eff.isClosed ? 'closed' : '',
-                isToday ? 'today' : '',
-                isPast  ? 'past'  : '',
-              ].filter(Boolean).join(' ')}
-              onClick={() => openDay(day)}
-            >
-              <div className={`gj-cal-day-num${isToday ? ' today-num' : ''}`}>{day}</div>
+        <button onClick={saveDefaults} disabled={savingDefaults} style={{
+          width: '100%', padding: '17px', borderRadius: 14, border: 'none',
+          background: savedDefaults ? '#16a34a' : savingDefaults ? '#d1cdc7' : '#e87722',
+          color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+          marginTop: 6, transition: 'background 0.25s',
+        }}>
+          {savedDefaults ? '✅ સફળતાપૂર્વક સચવાઈ ગયું' : savingDefaults ? 'સાચવી રહ્યા...' : '💾 સામાન્ય સમય સાચવો'}
+        </button>
+      </Card>
 
-              {eff.source !== 'default' && (
-                <div className={`gj-cal-src-badge ${eff.source}`} />
-              )}
+      {/* ══════════ 2. WEEKLY CLOSED DAY ══════════ */}
+      <Card>
+        <SectionTitle gu="દર અઠવાડિએ બંધ રહેવાનો દિવસ" en="One day every week — always closed" />
 
-              {eff.isClosed ? (
-                <div className="gj-cal-closed-label">બંધ</div>
-              ) : (
-                <div className="gj-cal-dots">
-                  <span className={`gj-dot ${eff.navkarshiEnabled ? 'on' : 'off'}`}>ન</span>
-                  <span className={`gj-dot ${eff.lunchEnabled     ? 'on' : 'off'}`}>બ</span>
-                  <span className={`gj-dot ${eff.choviharEnabled  ? 'on' : 'off'}`}>ચ</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+          <button
+            onClick={() => weeklyOffDay !== null && selectWeeklyOff(null)}
+            disabled={savingWeekly}
+            style={{
+              padding: '13px 20px', borderRadius: 14, border: 'none', cursor: 'pointer',
+              fontWeight: 700, fontSize: 15,
+              background: weeklyOffDay === null ? '#e87722' : '#f5f5f4',
+              color: weeklyOffDay === null ? '#fff' : '#44403c',
+              transition: 'all 0.15s', opacity: savingWeekly ? 0.6 : 1,
+            }}>
+            કોઈ નહીં
+          </button>
+          {[0, 1, 2, 3, 4, 5, 6].map(dow => (
+            <button key={dow}
+              onClick={() => selectWeeklyOff(dow)}
+              disabled={savingWeekly}
+              style={{
+                padding: '13px 18px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                fontWeight: 700, fontSize: 15,
+                background: weeklyOffDay === dow ? '#dc2626' : '#f5f5f4',
+                color: weeklyOffDay === dow ? '#fff' : '#44403c',
+                transition: 'all 0.15s', opacity: savingWeekly ? 0.6 : 1,
+              }}>
+              {DOW_FULL[dow]}
+            </button>
+          ))}
+        </div>
+
+        {weeklyOffDay !== null && (
+          <div style={{
+            background: '#fff5f5', border: '1px solid #fca5a5',
+            borderRadius: 12, padding: '13px 18px', fontSize: 15, color: '#b91c1c', lineHeight: 1.5,
+          }}>
+            🔴 દર <strong>{DOW_FULL[weeklyOffDay]}ે</strong> આખો દિવસ બંધ રહેશે.
+          </div>
+        )}
+      </Card>
+
+      {/* ══════════ 3. SPECIAL EXCEPTIONS ══════════ */}
+      <Card>
+        <SectionTitle gu="વિશેષ ફેરફારો" en="Special days — tap to add or edit" />
+
+        {upcomingExceptions.length === 0 ? (
+          <div style={{
+            textAlign: 'center', color: '#a8a29e', fontSize: 15,
+            padding: '16px 0 20px', fontStyle: 'italic',
+          }}>
+            કોઈ ખાસ ફેરફાર નથી
+          </div>
+        ) : (
+          <div style={{ marginBottom: 14 }}>
+            {upcomingExceptions.map(e => {
+              const dt       = new Date(e.date + 'T00:00:00')
+              const dayLabel = `${dt.getDate()} ${MONTH_FULL[dt.getMonth()]}`
+              const dowLabel = DOW_FULL[dt.getDay()]
+              const meals    = [
+                e.navkarshiEnabled && 'નવકારશી',
+                e.ayambilEnabled    && 'આયંબિલ',
+                e.lunchEnabled     && 'ભોજન',
+                e.choviharEnabled  && 'ચોવિહાર',
+              ].filter(Boolean).join(' · ')
+              return (
+                <div key={e.date} onClick={() => setExceptModal({ ...e })} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '15px 18px', borderRadius: 14, background: '#faf9f8',
+                  border: '1px solid #e7e5e4', marginBottom: 10, cursor: 'pointer',
+                }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#1c1917' }}>
+                      {dayLabel} ({dowLabel})
+                    </div>
+                    <div style={{ fontSize: 13, color: '#78716c', marginTop: 3 }}>
+                      {e.isClosed ? '🔴 આખો દિવસ બંધ' : `🟠 ${meals || 'ખુલ્લું'}`}
+                    </div>
+                  </div>
+                  <span style={{ color: '#a8a29e', fontSize: 22 }}>›</span>
                 </div>
-              )}
+              )
+            })}
+          </div>
+        )}
+
+        <button onClick={() => setExceptModal({})} style={{
+          width: '100%', padding: '17px', borderRadius: 14,
+          border: '2px dashed #e87722', background: '#fffbf5',
+          color: '#e87722', fontWeight: 700, fontSize: 16, cursor: 'pointer',
+        }}>
+          + ખાસ દિવસ ઉમેરો
+        </button>
+      </Card>
+
+      {/* ══════════ 4. SIMPLE CALENDAR ══════════ */}
+      <Card>
+        {/* Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <button onClick={prevMonth} style={{
+            background: '#f5f5f4', border: 'none', borderRadius: 12,
+            padding: '9px 16px', cursor: 'pointer', fontSize: 20, color: '#44403c',
+          }}>‹</button>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1c1917' }}>
+            {calLoading ? '...' : `${MONTH_FULL[month]} ${year}`}
+          </div>
+          <button onClick={nextMonth} style={{
+            background: '#f5f5f4', border: 'none', borderRadius: 12,
+            padding: '9px 16px', cursor: 'pointer', fontSize: 20, color: '#44403c',
+          }}>›</button>
+        </div>
+
+        {/* Day headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
+          {DOW_SHORT.map(d => (
+            <div key={d} style={{ textAlign: 'center', fontSize: 12, color: '#a8a29e', fontWeight: 700, padding: '4px 0' }}>
+              {d}
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
 
-      {/* Legend */}
-      <div className="gj-cal-legend">
-        <span className="gj-legend-item"><span className="gj-dot on">ન</span> ઉ.</span>
-        <span className="gj-legend-item"><span className="gj-dot off">ન</span> બ.</span>
-        <span className="gj-legend-item"><span className="gj-cal-src-badge override" style={{ display:'inline-block' }} /> ફેરફાર</span>
-        <span className="gj-legend-item"><span className="gj-cal-src-badge recurring" style={{ display:'inline-block' }} /> સા.નિ.</span>
-        <span className="gj-legend-item" style={{ background:'#fff1f1', padding:'2px 6px', borderRadius:4, fontSize:11 }}>બ = બંધ</span>
-      </div>
+        {/* Day cells */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+          {cells.map((day, i) => {
+            if (!day) return <div key={`e-${i}`} />
+            const ds         = toDayStr(year, month, day)
+            const status     = cellStatus(ds)
+            const isToday    = ds === todayStr
+            const isPast     = ds < todayStr
+            const hasOvr     = entries.find(e => e.date === ds)
+            const statusEmoji = status === 'open' ? '🟢' : status === 'partial' ? '🟠' : '🔴'
 
-      {/* Recurring rules */}
-      <RecurringRulesPanel rules={rules} onUpsert={handleUpsertRule} onDelete={handleDeleteRule} />
+            return (
+              <div key={ds}
+                onClick={() => !isPast && setExceptModal(hasOvr ? { ...hasOvr } : { date: ds })}
+                style={{
+                  textAlign: 'center', padding: '6px 2px', borderRadius: 12,
+                  cursor: isPast ? 'default' : 'pointer',
+                  background: isToday ? '#fff7ed' : 'transparent',
+                  border: isToday ? '2px solid #e87722' : '2px solid transparent',
+                  opacity: isPast ? 0.38 : 1,
+                  transition: 'background 0.15s',
+                }}>
+                <div style={{ fontSize: 11, marginBottom: 1 }}>{statusEmoji}</div>
+                <div style={{ fontSize: 13, fontWeight: isToday ? 800 : 500, color: '#1c1917' }}>{day}</div>
+              </div>
+            )
+          })}
+        </div>
 
-      {/* Day edit modal */}
-      {modal && (
-        <DayModal
-          dateStr={modal.dateStr}
-          initial={modal.data}
-          onSave={handleSave}
-          onReset={handleReset}
-          onClose={() => setModal(null)}
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 18, justifyContent: 'center', marginTop: 18, fontSize: 13, color: '#78716c', flexWrap: 'wrap' }}>
+          <span>🟢 ખુલ્લું</span>
+          <span>🟠 આંશિક ઉપલબ્ધ</span>
+          <span>🔴 બંધ</span>
+        </div>
+      </Card>
+
+      {/* ══════════ 5. SUMMARY CARD ══════════ */}
+      <Card style={{ background: '#fffbf5', border: '2px solid #fed7aa', marginBottom: 80 }}>
+        <SectionTitle gu="📋 આ અઠવાડિયું" en="This week at a glance" />
+
+        <div style={{ display: 'grid', gap: 12 }}>
+          {[
+            { icon: '🌅', label: 'navkarshi',  on: defaults.navkarshiAvailable },
+            { icon: '🥣', label: 'આયંબિલ', on: defaults.ayambilShalaEnabled },
+            { icon: '🍛', label: 'lunch',      on: defaults.lunchAvailable },
+            { icon: '🌙', label: 'chovihar',   on: defaults.choviharAvailable },
+          ].map(({ icon, label, on }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 15, color: '#44403c' }}>{icon} {label}</span>
+              <span style={{
+                padding: '5px 16px', borderRadius: 20, fontSize: 14, fontWeight: 700,
+                background: on ? '#dcfce7' : '#fee2e2',
+                color: on ? '#166534' : '#991b1b',
+              }}>
+                {on ? 'ON' : 'OFF'}
+              </span>
+            </div>
+          ))}
+
+          <div style={{ borderTop: '1px solid #fed7aa', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 15, color: '#44403c' }}>🗓 Weekly off</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: weeklyOffDay !== null ? '#991b1b' : '#166534' }}>
+              {weeklyOffDay !== null ? DOW_FULL[weeklyOffDay] : 'None'}
+            </span>
+          </div>
+
+          {upcomingExceptions.length > 0 && (
+            <div style={{ borderTop: '1px solid #fed7aa', paddingTop: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#44403c', marginBottom: 10 }}>
+                Upcoming special days
+              </div>
+              {upcomingExceptions.slice(0, 4).map(e => {
+                const dt = new Date(e.date + 'T00:00:00')
+                return (
+                  <div key={e.date} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 14 }}>
+                    <span style={{ color: '#44403c' }}>
+                      {dt.getDate()} {MONTH_FULL[dt.getMonth()]} ({DOW_FULL[dt.getDay()].slice(0, 3)})
+                    </span>
+                    <span style={{ fontWeight: 700, color: e.isClosed ? '#991b1b' : '#92400E' }}>
+                      {e.isClosed ? '🔴 Closed' : '🟠 Partial'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Exception modal */}
+      {exceptModal !== null && (
+        <ExceptionModal
+          initial={exceptModal}
+          onSave={saveException}
+          onDelete={deleteException}
+          onClose={() => setExceptModal(null)}
         />
       )}
     </div>
   )
 }
+
+

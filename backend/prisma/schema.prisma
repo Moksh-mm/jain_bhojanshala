@@ -122,6 +122,14 @@ model Bhojanshala {
   choviharStartTime     String?
   choviharEndTime       String?
   choviharPrice         Int              @default(0)
+  // Ayambil Shala
+  ayambilShalaEnabled         Boolean   @default(false)
+  ayambilStartTime            String?
+  ayambilEndTime              String?
+  ayambilPrice                Int       @default(0)
+  ayambilLocationSameAsBhoj   Boolean   @default(true)
+  ayambilLatitude             Float?
+  ayambilLongitude            Float?
   // Dharamshala details
   dharamshalaDescription  String?
   dharamshalaLatitude     Float?
@@ -169,6 +177,10 @@ model AvailabilityCalendar {
   choviharStart    String?
   choviharEnd      String?
   choviharPrice    Int?
+  ayambilEnabled   Boolean       @default(true)
+  ayambilStart     String?
+  ayambilEnd       String?
+  ayambilPrice     Int?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -187,6 +199,7 @@ model RecurringRule {
   navkarshiEnabled Boolean       @default(true)
   lunchEnabled     Boolean       @default(true)
   choviharEnabled  Boolean       @default(true)
+  ayambilEnabled   Boolean       @default(true)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

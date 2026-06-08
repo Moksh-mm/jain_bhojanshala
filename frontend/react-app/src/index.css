@@ -624,6 +624,12 @@ img { display: block; max-width: 100%; }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .card-name { font-size: 16px; color: var(--ink); line-height: 1.2; }
 .card-area { font-size: 12px; color: var(--muted); margin: 3px 0 0; }
+.card-ayambil-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #fff7ed; border: 1.5px solid #fed7aa;
+  color: #c2410c; font-size: 12px; font-weight: 700;
+  border-radius: 20px; padding: 4px 10px; align-self: flex-start;
+}
 
 .meal-triple { display: flex; gap: 6px; }
 .meal-pill {
@@ -2029,7 +2035,7 @@ img { display: block; max-width: 100%; }
 }
 .dt-date.closed { opacity: .55; }
 
-.dt-date-wd  { font-size: 10px; font-weight: 600; color: var(--ink2); }
+.dt-date-wd  { font-size: 10px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
 .dt-date.on .dt-date-wd  { color: rgba(255,255,255,.85); }
 .dt-date-num { font-size: 16px; font-weight: 800; color: var(--ink); }
 .dt-date.on .dt-date-num { color: #fff; }
@@ -2306,7 +2312,7 @@ img { display: block; max-width: 100%; }
 }
 .dt-footer-rev { font-size: 12px; color: var(--ink2); }
 
-.dt-scroll-pad { height: 90px; }
+.dt-scroll-pad { height: 72px; }
 
 /* ── Floating mobile bottom bar ── */
 .dt-float-bar {

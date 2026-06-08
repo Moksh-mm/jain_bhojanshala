@@ -7,11 +7,12 @@ type Ctx = { params: Promise<{ id: string }> }
 export async function GET(request: NextRequest, { params }: Ctx) {
   const { id } = await params
 
-  const bhoj = await prisma.bhojanshala.findUnique({
-    where: { id, isActive: true },
-  })
+  const bhoj = await prisma.bhojanshala.findUnique({ where: { id } })
 
   if (!bhoj) return NextResponse.json({ error: 'Bhojanshala not found' }, { status: 404 })
+  if (!bhoj.isActive && !(bhoj as any).ayambilShalaEnabled) {
+    return NextResponse.json({ error: 'Bhojanshala not found' }, { status: 404 })
+  }
 
   const days = parseInt(new URL(request.url).searchParams.get('days') ?? '7')
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import {
   computeStatus,
   bhojName, bhojArea, bhojCity, bhojNotice,
@@ -20,6 +20,7 @@ const QUICK_CHIPS = [
   { key: 'ekashnu',     emoji: '🍽', gu: 'એકાસણું',          en: 'Ekasanu'      },
   { key: 'biaasanu',    emoji: '🍽', gu: 'બિયાસણું',        en: 'Biyasanu'     },
   { key: 'ambil',       emoji: '🥣', gu: 'આંબિલ',           en: 'Ambil'        },
+  { key: 'ayambil',    emoji: '🥣', gu: 'આયંબિલ',       en: 'Ayambil'      },
   { key: 'parking',     emoji: '🅿️', gu: 'પાર્કિંગ',        en: 'Parking'      },
 ];
 
@@ -57,6 +58,10 @@ function BhojCard({ b, lang, onOpen }) {
         </div>
 
         <MealTriple todayMeals={tm} lang={lang} />
+
+        {b.ayambilShalaEnabled && (
+          <div className="card-ayambil-tag">🥣 {L('ayambil', lang)}</div>
+        )}
 
         <div className="card-actions" onClick={(e) => e.stopPropagation()}>
           {b.directionsUrl
@@ -104,6 +109,7 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
     if (chips.has('ekashnu'))     list = list.filter(b => b.facilities?.ekashnu);
     if (chips.has('biaasanu'))    list = list.filter(b => b.facilities?.biaasanu);
     if (chips.has('ambil'))       list = list.filter(b => b.facilities?.ambil);
+    if (chips.has('ayambil'))    list = list.filter(b => b.ayambilShalaEnabled);
     if (chips.has('parking'))     list = list.filter(b => b.facilities?.parking);
     if (city.trim()) {
       const q = city.trim().toLowerCase();

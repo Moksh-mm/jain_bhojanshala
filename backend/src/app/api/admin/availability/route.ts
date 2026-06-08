@@ -105,6 +105,10 @@ export async function POST(request: NextRequest) {
   const choviharStart    = typeof body.choviharStart   === 'string' ? body.choviharStart   || null : null
   const choviharEnd      = typeof body.choviharEnd     === 'string' ? body.choviharEnd     || null : null
   const choviharPrice    = typeof body.choviharPrice   === 'number' ? body.choviharPrice    : null
+  const ayambilEnabled   = body.ayambilEnabled  !== false
+  const ayambilStart     = typeof body.ayambilStart    === 'string' ? body.ayambilStart    || null : null
+  const ayambilEnd       = typeof body.ayambilEnd      === 'string' ? body.ayambilEnd      || null : null
+  const ayambilPrice     = typeof body.ayambilPrice    === 'number' ? body.ayambilPrice     : null
 
   let entry: Awaited<ReturnType<typeof prisma.availabilityCalendar.upsert>>
   try {
@@ -120,12 +124,14 @@ export async function POST(request: NextRequest) {
       date: dateUTC,
       isClosed, closedReason, closedNote, specialNotice,
       navkarshiEnabled, navkarshiStart, navkarshiEnd, navkarshiPrice,
+      ayambilEnabled,  ayambilStart,  ayambilEnd,  ayambilPrice,
       lunchEnabled, lunchStart, lunchEnd, lunchPrice,
       choviharEnabled, choviharStart, choviharEnd, choviharPrice,
     },
     update: {
       isClosed, closedReason, closedNote, specialNotice,
       navkarshiEnabled, navkarshiStart, navkarshiEnd, navkarshiPrice,
+      ayambilEnabled,  ayambilStart,  ayambilEnd,  ayambilPrice,
       lunchEnabled, lunchStart, lunchEnd, lunchPrice,
       choviharEnabled, choviharStart, choviharEnd, choviharPrice,
     },

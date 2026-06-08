@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { adminApi } from '../../lib/api'
 import AvailabilityCalendar from './AvailabilityCalendar'
@@ -269,6 +269,24 @@ function BhojanshalaTab({ bhoj, onSaved }) {
     images:             Array.isArray(f.images) ? f.images : [],
     // Notice
     noticeGujarati:     f.noticeGujarati || '',
+    // Meal defaults (fixed daily timings & price)
+    navkarshiAvailable: f.navkarshi?.available ?? true,
+    navkarshiStartTime: f.navkarshi?.startTime || '',
+    navkarshiEndTime:   f.navkarshi?.endTime   || '',
+    navkarshiPrice:     f.navkarshi?.price     ?? 0,
+    lunchAvailable:     f.lunch?.available     ?? true,
+    lunchStartTime:     f.lunch?.startTime     || '',
+    lunchEndTime:       f.lunch?.endTime       || '',
+    lunchPrice:         f.lunch?.price         ?? 0,
+    choviharAvailable:  f.chovihar?.available  ?? false,
+    choviharStartTime:  f.chovihar?.startTime  || '',
+    choviharEndTime:    f.chovihar?.endTime    || '',
+    choviharPrice:      f.chovihar?.price      ?? 0,
+    // Ayambil Shala
+    ayambilShalaEnabled: f.ayambil?.available  ?? false,
+    ayambilStartTime:    f.ayambil?.startTime  || '',
+    ayambilEndTime:      f.ayambil?.endTime    || '',
+    ayambilPrice:        f.ayambil?.price      ?? 0,
   })
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
@@ -302,12 +320,26 @@ function BhojanshalaTab({ bhoj, onSaved }) {
     ['wheelchairAccessible','વ્હીલચૅર'],
   ]
 
+  const eitherActive = form.isActive || form.ayambilShalaEnabled
+
   return (
     <div className="gj-content">
-      {/* Availability */}
+
+      {/* ① Ayambil Shala toggle */}
+      <div className="gj-avail-bar" style={{ marginBottom: 10 }}>
+        <div>
+          <div className="gj-avail-title">🥣 આયંબિલ શાળા ઉપલબ્ધ છે?</div>
+          <div className="gj-avail-hint">
+            {form.ayambilShalaEnabled ? '✓ આયંબિલ સેવા ઉપલબ્ધ છે' : '✗ આયંબિલ સેવા ઉપલબ્ધ નથી'}
+          </div>
+        </div>
+        <GujToggle checked={form.ayambilShalaEnabled} onChange={v => set('ayambilShalaEnabled', v)} />
+      </div>
+
+      {/* ② Bhojanshala toggle */}
       <div className="gj-avail-bar">
         <div>
-          <div className="gj-avail-title">ભોજનશાળા ઉપલબ્ધ છે?</div>
+          <div className="gj-avail-title">🍛 ભોજનશાળા ઉપલબ્ધ છે?</div>
           <div className="gj-avail-hint">
             {form.isActive ? '✓ જાહેર વેબસાઇટ પર દેખાય છે' : '✗ વેબસાઇટ પર દેખાતી નથી'}
           </div>
@@ -315,7 +347,7 @@ function BhojanshalaTab({ bhoj, onSaved }) {
         <GujToggle checked={form.isActive} onChange={v => set('isActive', v)} />
       </div>
 
-      {form.isActive && (
+      {eitherActive && (
         <>
           {/* Basic Info */}
           <GujSection title="📋 સામાન્ય માહિતી">
@@ -360,6 +392,50 @@ function BhojanshalaTab({ bhoj, onSaved }) {
               lng={form.longitude}
               onChange={({ lat, lng }) => setForm(p => ({ ...p, latitude: lat, longitude: lng }))}
             />
+          </GujSection>
+
+          {/* Meal Timings */}
+          <GujSection title="⏰ ભોજન સમય અને કિંમત" hint="નવકારશી · આયંબિલ · બપોરે · ચોવિહાર">
+            {[
+              { k: 'navkarshi', icon: '☀️', label: 'નવકારશી (Navkarshi)', visibleWhen: form.isActive },
+              { k: 'ayambil',   icon: '🥣', label: 'આયંબિલ (Ayambil)',   avKey: 'ayambilShalaEnabled', visibleWhen: form.ayambilShalaEnabled },
+              { k: 'lunch',     icon: '🍽', label: 'બપોરે (Lunch)', visibleWhen: form.isActive },
+              { k: 'chovihar',  icon: '🌙', label: 'ચોવિહાર (Chovihar)', visibleWhen: form.isActive },
+            ].filter(m => m.visibleWhen).map(({ k, icon, label, avKey: ak }) => {
+              const avKey = ak ?? (k + 'Available')
+              const stKey = k + 'StartTime'
+              const etKey = k + 'EndTime'
+              const prKey = k + 'Price'
+              return (
+                <div key={k} style={{ borderBottom: '1px solid #f0e8d5', paddingBottom: 16, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: form[avKey] ? 14 : 0 }}>
+                    <span style={{ fontWeight: 600, fontSize: 15 }}>{icon} {label}</span>
+                    <GujToggle checked={!!form[avKey]} onChange={v => set(avKey, v)} />
+                  </div>
+                  {form[avKey] && (
+                    <div className="gj-grid-2">
+                      <GujField label="Start">
+                        <input className="gj-input" type="time" value={form[stKey] || ''} onChange={e => set(stKey, e.target.value)} />
+                      </GujField>
+                      <GujField label="End">
+                        <input className="gj-input" type="time" value={form[etKey] || ''} onChange={e => set(etKey, e.target.value)} />
+                      </GujField>
+                      <GujField label="Price (₹)" full>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input
+                            className="gj-input" type="number" min="0" placeholder="0"
+                            value={form[prKey] ?? 0}
+                            onChange={e => set(prKey, Number(e.target.value) || 0)}
+                            style={{ maxWidth: 110 }}
+                          />
+                          <span style={{ color: '#78716c', fontSize: 13 }}>0 = Free (નિ:શુલ્ક)</span>
+                        </div>
+                      </GujField>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </GujSection>
 
           {/* Tiffin */}
@@ -724,7 +800,7 @@ export default function MyDashboard({ goHome }) {
 
           {/* Tab content */}
           {tab === 'bhojanshala'  && <BhojanshalaTab       bhoj={bhoj} onSaved={load} />}
-          {tab === 'availability' && <AvailabilityCalendar bhojId={bhoj.id} />}
+          {tab === 'availability' && <AvailabilityCalendar bhoj={bhoj} onSaved={load} />}
           {tab === 'dharamshala'  && <DharamshalaTabs      bhoj={bhoj} onSaved={load} />}
           {tab === 'derasar'      && <DerasarTab           bhoj={bhoj} onSaved={load} />}
         </>

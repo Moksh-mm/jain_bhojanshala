@@ -64,6 +64,7 @@ export interface ApiBhojanshala {
   latitude:  number | null
   longitude: number | null
   navkarshi: { available: boolean; startTime: string | null; endTime: string | null; price: number }
+  ayambil:   { available: boolean; startTime: string | null; endTime: string | null; price: number }
   lunch:     { available: boolean; startTime: string | null; endTime: string | null; price: number }
   chovihar:  { available: boolean; startTime: string | null; endTime: string | null; price: number }
   dharamshala: {

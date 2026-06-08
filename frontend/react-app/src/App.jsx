@@ -46,7 +46,9 @@ function AppInner() {
       <div className="route-fade" key={route.name + (route.id || '')}>
         {screen}
       </div>
-      <BottomNav active="home" lang={lang} onNav={() => goHome()} />
+      {route.name !== 'detail' && (
+        <BottomNav active="home" lang={lang} onNav={() => goHome()} />
+      )}
     </div>
   );
 }

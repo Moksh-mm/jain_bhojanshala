@@ -15,6 +15,7 @@ export interface PublicDayAvailability {
   isClosed:     boolean
   specialNotice: string | null
   navkarshi:    PublicMeal
+  ayambil:      PublicMeal
   lunch:        PublicMeal
   chovihar:     PublicMeal
 }
@@ -45,6 +46,9 @@ export function fallbackMeals(b: Bhojanshala, dateStr: string): PublicDayAvailab
     navkarshi: b.navkarshiAvailable
       ? { enabled: true, startTime: b.navkarshiStartTime, endTime: b.navkarshiEndTime, price: b.navkarshiPrice }
       : OFF,
+    ayambil: (b as any).ayambilShalaEnabled
+      ? { enabled: true, startTime: (b as any).ayambilStartTime ?? null, endTime: (b as any).ayambilEndTime ?? null, price: (b as any).ayambilPrice ?? null }
+      : OFF,
     lunch: b.lunchAvailable
       ? { enabled: true, startTime: b.lunchStartTime, endTime: b.lunchEndTime, price: b.lunchPrice }
       : OFF,
@@ -69,6 +73,7 @@ export function computeTodayMeals(
       isClosed:     entry.isClosed,
       specialNotice: entry.specialNotice ?? null,
       navkarshi: { enabled: entry.navkarshiEnabled, startTime: entry.navkarshiStart, endTime: entry.navkarshiEnd, price: entry.navkarshiPrice },
+      ayambil:   { enabled: entry.ayambilEnabled  ?? false, startTime: entry.ayambilStart ?? null, endTime: entry.ayambilEnd ?? null, price: entry.ayambilPrice ?? null },
       lunch:     { enabled: entry.lunchEnabled,     startTime: entry.lunchStart,     endTime: entry.lunchEnd,     price: entry.lunchPrice },
       chovihar:  { enabled: entry.choviharEnabled,  startTime: entry.choviharStart,  endTime: entry.choviharEnd,  price: entry.choviharPrice },
     }
@@ -79,6 +84,7 @@ export function computeTodayMeals(
       isClosed:     rule.isClosed,
       specialNotice: null,
       navkarshi: rule.navkarshiEnabled ? ON : OFF,
+      ayambil:   (rule.ayambilEnabled ?? true)  ? ON : OFF,
       lunch:     rule.lunchEnabled     ? ON : OFF,
       chovihar:  rule.choviharEnabled  ? ON : OFF,
     }
@@ -122,9 +128,10 @@ export function serializePublicBhojanshala(b: Bhojanshala) {
       upashray:             b.upashray,
       dharamshalaAvailable: b.dharamshalaAvailable,
     },
-    noticeGujarati:       b.noticeGujarati ?? null,
-    dharamshalaAvailable: b.dharamshalaAvailable,
-    derasarAvailable:     b.derasarAvailable,
+    noticeGujarati:           b.noticeGujarati ?? null,
+    dharamshalaAvailable:     b.dharamshalaAvailable,
+    derasarAvailable:         b.derasarAvailable,
+    ayambilShalaEnabled:      (b as any).ayambilShalaEnabled ?? false,
   }
 }
 
@@ -190,6 +197,7 @@ export async function buildPublicAvailability(
           isClosed:     entry.isClosed,
           specialNotice: entry.specialNotice ?? null,
           navkarshi: { enabled: entry.navkarshiEnabled, startTime: entry.navkarshiStart, endTime: entry.navkarshiEnd, price: entry.navkarshiPrice },
+          ayambil:   { enabled: (entry as any).ayambilEnabled ?? false, startTime: (entry as any).ayambilStart ?? null, endTime: (entry as any).ayambilEnd ?? null, price: (entry as any).ayambilPrice ?? null },
           lunch:     { enabled: entry.lunchEnabled,     startTime: entry.lunchStart,     endTime: entry.lunchEnd,     price: entry.lunchPrice },
           chovihar:  { enabled: entry.choviharEnabled,  startTime: entry.choviharStart,  endTime: entry.choviharEnd,  price: entry.choviharPrice },
         }
@@ -202,6 +210,7 @@ export async function buildPublicAvailability(
           isClosed:     rule.isClosed,
           specialNotice: null,
           navkarshi: rule.navkarshiEnabled ? ON : OFF,
+          ayambil:   ((rule as any).ayambilEnabled ?? true) ? ON : OFF,
           lunch:     rule.lunchEnabled     ? ON : OFF,
           chovihar:  rule.choviharEnabled  ? ON : OFF,
         }

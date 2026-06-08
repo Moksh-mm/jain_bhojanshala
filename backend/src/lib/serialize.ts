@@ -74,6 +74,12 @@ export function serializeBhojanshala(b: BhojanshalaWithAdmin): ApiBhojanshala {
       endTime:   b.choviharEndTime ?? null,
       price:     b.choviharPrice,
     },
+    ayambil: {
+      available: (b as any).ayambilShalaEnabled ?? false,
+      startTime: (b as any).ayambilStartTime ?? null,
+      endTime:   (b as any).ayambilEndTime   ?? null,
+      price:     (b as any).ayambilPrice     ?? 0,
+    },
     dharamshala: {
       available:   b.dharamshalaAvailable,
       description: b.dharamshalaDescription ?? null,

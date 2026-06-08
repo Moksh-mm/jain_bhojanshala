@@ -52,6 +52,7 @@ export async function PUT(request: NextRequest) {
   const navkarshiEnabled = body.navkarshiEnabled !== false
   const lunchEnabled     = body.lunchEnabled     !== false
   const choviharEnabled  = body.choviharEnabled  !== false
+  const ayambilEnabled   = body.ayambilEnabled   !== false
 
   let rule: Awaited<ReturnType<typeof prisma.recurringRule.upsert>>
   try {
@@ -65,11 +66,11 @@ export async function PUT(request: NextRequest) {
     create: {
       bhojanshalaId: auth.user.bhojanshalaId,
       dayOfWeek, isClosed, closedReason,
-      navkarshiEnabled, lunchEnabled, choviharEnabled,
+      navkarshiEnabled, lunchEnabled, choviharEnabled, ayambilEnabled,
     },
     update: {
       isClosed, closedReason,
-      navkarshiEnabled, lunchEnabled, choviharEnabled,
+      navkarshiEnabled, lunchEnabled, choviharEnabled, ayambilEnabled,
     },
   })
   } catch (err: unknown) {

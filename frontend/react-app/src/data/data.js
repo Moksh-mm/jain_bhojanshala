@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Jain Bhojanshala Finder — bilingual layer + API helpers
    ============================================================ */
 
@@ -58,7 +58,7 @@ function nowMin() {
 // ---- status from API todayMeals (PublicDayAvailability) ----
 export function computeStatus(todayMeals) {
   if (!todayMeals || todayMeals.isClosed) return 'closed';
-  const enabled = [todayMeals.navkarshi, todayMeals.lunch, todayMeals.chovihar]
+  const enabled = [todayMeals.navkarshi, todayMeals.ayambil, todayMeals.lunch, todayMeals.chovihar]
     .filter(m => m?.enabled).length;
   if (enabled === 0) return 'closed';
   if (enabled < 3)   return 'partial';
@@ -112,7 +112,7 @@ export function bhojFacilities(b) {
 export function minPriceToday(bhoj) {
   const tm = bhoj.todayMeals;
   if (!tm || tm.isClosed) return Infinity;
-  const prices = [tm.navkarshi, tm.lunch, tm.chovihar]
+  const prices = [tm.navkarshi, tm.ayambil, tm.lunch, tm.chovihar]
     .filter(m => m?.enabled && m.price != null)
     .map(m => m.price);
   return prices.length ? Math.min(...prices) : Infinity;
@@ -124,7 +124,7 @@ export function nextOpenInfo(availability, fromIdx, lang) {
   for (let i = 1; i < availability.length; i++) {
     const day = availability[(fromIdx + i) % availability.length];
     if (!day || day.isClosed) continue;
-    const meals = [day.navkarshi, day.lunch, day.chovihar]
+    const meals = [day.navkarshi, day.ayambil, day.lunch, day.chovihar]
       .filter(m => m?.enabled && m.startTime)
       .sort((a, b) => timeStrToMin(a.startTime) - timeStrToMin(b.startTime));
     if (meals.length) {
@@ -156,6 +156,7 @@ export const T = {
   closed:       { gu: 'બંધ', en: 'Closed' },
   closedToday:  { gu: 'આજે બંધ', en: 'Closed today' },
   navkarshi:    { gu: 'નવકારશી', en: 'Navkarshi' },
+  ayambil:     { gu: 'આયંબિલ', en: 'Ayambil' },
   lunch:        { gu: 'બપોરે', en: 'Lunch' },
   chovihar:     { gu: 'ચોવિહાર', en: 'Chovihar' },
   breakfast:    { gu: 'નવકારશી', en: 'Navkarshi' },

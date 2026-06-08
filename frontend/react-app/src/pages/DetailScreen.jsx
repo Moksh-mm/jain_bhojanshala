@@ -157,6 +157,7 @@ function BhojTab({ bhoj, availability, sel, setSel, lang }) {
             ) : (
               <>
                 <MealCard emoji="☀️" labelKey="breakfast" meal={selDay?.navkarshi} lang={lang} />
+                <MealCard emoji="🥣" labelKey="ayambil"  meal={selDay?.ayambil}   lang={lang} />
                 <MealCard emoji="🍽" labelKey="lunch"     meal={selDay?.lunch}     lang={lang} />
                 <MealCard emoji="🌙" labelKey="dinner"    meal={selDay?.chovihar}  lang={lang} />
               </>

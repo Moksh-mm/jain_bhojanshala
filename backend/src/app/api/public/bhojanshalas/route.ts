@@ -14,22 +14,27 @@ export async function GET(request: NextRequest) {
   const tiffin  = searchParams.get('tiffin') === 'true'
   const dharam  = searchParams.get('dharamshala') === 'true'
 
-  const where: Record<string, unknown> = { isActive: active }
-
-  if (city) {
-    where.cityEnglish = { equals: city, mode: 'insensitive' }
+  // Show bhojanshala if it's active OR if it offers Ayambil Shala
+  const where: Record<string, unknown> = {
+    OR: [{ isActive: true }, { ayambilShalaEnabled: true }],
   }
 
-  if (tiffin)  where.tiffinAvailable      = true
+  if (city)    where.cityEnglish        = { equals: city, mode: 'insensitive' }
+  if (tiffin)  where.tiffinAvailable    = true
   if (dharam)  where.dharamshalaAvailable = true
 
   if (search) {
-    where.OR = [
-      { nameEnglish:  { contains: search, mode: 'insensitive' } },
-      { nameGujarati: { contains: search, mode: 'insensitive' } },
-      { cityEnglish:  { contains: search, mode: 'insensitive' } },
-      { areaEnglish:  { contains: search, mode: 'insensitive' } },
+    // Can't have two OR keys — wrap visibility OR in AND so search OR can coexist
+    where.AND = [
+      { OR: where.OR as unknown[] },
+      { OR: [
+        { nameEnglish:  { contains: search, mode: 'insensitive' } },
+        { nameGujarati: { contains: search, mode: 'insensitive' } },
+        { cityEnglish:  { contains: search, mode: 'insensitive' } },
+        { areaEnglish:  { contains: search, mode: 'insensitive' } },
+      ]},
     ]
+    delete where.OR
   }
 
   const bhojanshalas = await prisma.bhojanshala.findMany({

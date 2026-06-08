@@ -35,6 +35,8 @@ const ADMIN_ALLOWED = [
   'navkarshiAvailable', 'navkarshiStartTime', 'navkarshiEndTime', 'navkarshiPrice',
   'lunchAvailable', 'lunchStartTime', 'lunchEndTime', 'lunchPrice',
   'choviharAvailable', 'choviharStartTime', 'choviharEndTime', 'choviharPrice',
+  'ayambilShalaEnabled', 'ayambilStartTime', 'ayambilEndTime', 'ayambilPrice',
+  'ayambilLocationSameAsBhoj', 'ayambilLatitude', 'ayambilLongitude',
   // Facilities
   'dharamshalaAvailable', 'parking', 'washroom', 'drinkingWater', 'boilWater',
   'templeNearby', 'familyFriendly', 'wheelchairAccessible',
@@ -62,7 +64,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const FLOAT_FIELDS = new Set(['latitude', 'longitude', 'dharamshalaLatitude', 'dharamshalaLongitude', 'derasarLatitude', 'derasarLongitude'])
+  const FLOAT_FIELDS = new Set(['latitude', 'longitude', 'dharamshalaLatitude', 'dharamshalaLongitude', 'derasarLatitude', 'derasarLongitude', 'ayambilLatitude', 'ayambilLongitude'])
 
   const data: Record<string, unknown> = {}
   for (const key of ADMIN_ALLOWED) {
