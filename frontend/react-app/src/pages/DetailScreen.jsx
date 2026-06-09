@@ -510,27 +510,17 @@ export default function DetailScreen({ id, lang, setLang, onBack }) {
 
       {/* ════════════ FLOATING MOBILE NAV ════════════ */}
       <nav className="dt-float-bar">
-        {[
-          { icon: 'nav',      key: 'directions', href: bhoj.directionsUrl,                                                                     target: '_blank' },
-          { icon: 'phone',    key: 'call',       href: bhoj.phone ? `tel:${bhoj.phone}` : null                                                                  },
-          { icon: 'whatsapp', key: 'whatsapp',   href: bhoj.whatsappNumber ? `https://wa.me/${bhoj.whatsappNumber.replace(/\D/g,'')}` : null,   target: '_blank' },
-          { icon: 'share',    key: 'share',      onClick: handleShare                                                                                            },
-        ].map((a, i) => {
-          const El = a.href ? 'a' : 'button';
-          return (
-            <El
-              key={i}
-              className={'dt-fb-btn' + (!a.href && !a.onClick ? ' dim' : '')}
-              href={a.href || undefined}
-              target={a.target || undefined}
-              rel={a.target ? 'noopener noreferrer' : undefined}
-              onClick={a.onClick || undefined}
-            >
-              <span className="dt-fb-icon"><Icon name={a.icon} size={21} stroke={1.8} /></span>
-              <span className="dt-fb-label">{L(a.key, lang)}</span>
-            </El>
-          );
-        })}
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            className={'dt-fb-btn' + (activeTab === tab.key ? ' on' : '') + (!tab.enabled ? ' dim' : '')}
+            onClick={() => tab.enabled && setActiveTab(tab.key)}
+            disabled={!tab.enabled}
+          >
+            <span className="dt-fb-icon">{tab.icon}</span>
+            <span className="dt-fb-label">{lang === 'gu' ? tab.gu : tab.en}</span>
+          </button>
+        ))}
       </nav>
     </div>
   );

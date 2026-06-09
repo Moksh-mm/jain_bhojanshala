@@ -1948,9 +1948,7 @@ img { display: block; max-width: 100%; }
 
 /* ── Content area ── */
 .dt-content {
-  flex: 1;
   padding: 18px;
-  min-height: 0;
 }
 @media (min-width: 640px) { .dt-content { padding: 24px 24px; } }
 
