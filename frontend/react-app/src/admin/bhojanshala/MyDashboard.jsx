@@ -313,6 +313,7 @@ function BhojanshalaTab({ bhoj, onSaved }) {
     ['ekashnu',            'એકાશણ'],
     ['biaasanu',           'બીઆશણ'],
     ['ambil',              'આયંબિલ'],
+    ['tirth',              'તીર્થ'],
     ['parking',            'પાર્કિંગ'],
     ['drinkingWater',      'પીવાનું પાણી'],
     ['washroom',           'વૉશરૂમ'],

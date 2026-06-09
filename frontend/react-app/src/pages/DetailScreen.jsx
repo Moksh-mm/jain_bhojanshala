@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   WEEKDAYS,
   computeStatus, bhojName, bhojArea, bhojCity,
@@ -202,6 +202,33 @@ function BhojTab({ bhoj, availability, sel, setSel, lang }) {
             </div>
           </div>
         )}
+
+        {/* Contact card */}
+        {(bhoj.phone || bhoj.whatsappNumber || bhoj.directionsUrl) && (
+          <div className="dt-card">
+            <h3 className="dt-card-title">🤝 {L('needHelp', lang)}</h3>
+            <div className="dt-contact-btns">
+              {bhoj.phone && (
+                <a href={`tel:${bhoj.phone}`} className="dt-contact-btn dt-cb-call">
+                  <Icon name="phone" size={17} stroke={2} />
+                  <span>{L('call', lang)}</span>
+                </a>
+              )}
+              {bhoj.whatsappNumber && (
+                <a href={`https://wa.me/${bhoj.whatsappNumber.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="dt-contact-btn dt-cb-wa">
+                  <Icon name="whatsapp" size={17} stroke={2} />
+                  <span>{L('whatsapp', lang)}</span>
+                </a>
+              )}
+              {bhoj.directionsUrl && (
+                <a href={bhoj.directionsUrl} target="_blank" rel="noopener noreferrer" className="dt-contact-btn dt-cb-dir">
+                  <Icon name="nav" size={17} stroke={2} />
+                  <span>{L('directions', lang)}</span>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -300,6 +327,7 @@ export default function DetailScreen({ id, lang, setLang, onBack }) {
   const todayStatus = computeStatus(today);
   const hasDharam   = !!bhoj.dharamshala?.available;
   const hasDerasar  = !!bhoj.derasar?.available;
+  const hasAyambil  = !!bhoj.ayambilShalaEnabled;
 
   // Collect all photos for a potential header gallery (future use)
   const heroImg = bhoj.coverImage || null;
@@ -359,6 +387,7 @@ export default function DetailScreen({ id, lang, setLang, onBack }) {
                 <span className="dt-hero-badge">🍛 {lang === 'gu' ? 'ભોજનશાળા' : 'Bhojanshala'}</span>
                 {hasDharam  && <span className="dt-hero-badge">🛏 {lang === 'gu' ? 'ધર્મશાળા' : 'Dharamshala'}</span>}
                 {hasDerasar && <span className="dt-hero-badge">🛕 {lang === 'gu' ? 'દેરાસર' : 'Derasar'}</span>}
+                {hasAyambil && <span className="dt-hero-badge">🥣 {L('ayambil', lang)}</span>}
               </div>
             </div>
 
@@ -377,12 +406,13 @@ export default function DetailScreen({ id, lang, setLang, onBack }) {
               </div>
               <div className="dt-sc-meals">
                 {[
-                  { meal: today?.navkarshi, gu: 'ન.',   en: 'N' },
-                  { meal: today?.lunch,     gu: 'બ.',   en: 'L' },
-                  { meal: today?.chovihar,  gu: 'ચ.',   en: 'C' },
-                ].map(({ meal, gu, en }, i) => (
+                  { meal: today?.navkarshi, key: 'navkarshi' },
+                  { meal: today?.ayambil,   key: 'ayambil'   },
+                  { meal: today?.lunch,     key: 'lunch'     },
+                  { meal: today?.chovihar,  key: 'chovihar'  },
+                ].map(({ meal, key }, i) => (
                   <span key={i} className={'dt-sc-meal ' + (meal?.enabled ? 'on' : 'off')}>
-                    {meal?.enabled ? '✓' : '✗'} {lang === 'gu' ? gu : en}
+                    {L(key, lang).slice(0, lang === 'gu' ? 2 : 1)}
                   </span>
                 ))}
               </div>
@@ -480,17 +510,27 @@ export default function DetailScreen({ id, lang, setLang, onBack }) {
 
       {/* ════════════ FLOATING MOBILE NAV ════════════ */}
       <nav className="dt-float-bar">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            className={'dt-fb-btn' + (activeTab === tab.key ? ' on' : '') + (!tab.enabled ? ' dim' : '')}
-            onClick={() => tab.enabled && setActiveTab(tab.key)}
-            disabled={!tab.enabled}
-          >
-            <span className="dt-fb-icon">{tab.icon}</span>
-            <span className="dt-fb-label">{lang === 'gu' ? tab.gu : tab.en}</span>
-          </button>
-        ))}
+        {[
+          { icon: 'nav',      key: 'directions', href: bhoj.directionsUrl,                                                                     target: '_blank' },
+          { icon: 'phone',    key: 'call',       href: bhoj.phone ? `tel:${bhoj.phone}` : null                                                                  },
+          { icon: 'whatsapp', key: 'whatsapp',   href: bhoj.whatsappNumber ? `https://wa.me/${bhoj.whatsappNumber.replace(/\D/g,'')}` : null,   target: '_blank' },
+          { icon: 'share',    key: 'share',      onClick: handleShare                                                                                            },
+        ].map((a, i) => {
+          const El = a.href ? 'a' : 'button';
+          return (
+            <El
+              key={i}
+              className={'dt-fb-btn' + (!a.href && !a.onClick ? ' dim' : '')}
+              href={a.href || undefined}
+              target={a.target || undefined}
+              rel={a.target ? 'noopener noreferrer' : undefined}
+              onClick={a.onClick || undefined}
+            >
+              <span className="dt-fb-icon"><Icon name={a.icon} size={21} stroke={1.8} /></span>
+              <span className="dt-fb-label">{L(a.key, lang)}</span>
+            </El>
+          );
+        })}
       </nav>
     </div>
   );

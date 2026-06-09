@@ -19,7 +19,7 @@ const QUICK_CHIPS = [
   { key: 'boilWater',   emoji: '💧', gu: 'ઉકાળેલું પાણી',   en: 'Boiled water' },
   { key: 'ekashnu',     emoji: '🍽', gu: 'એકાસણું',          en: 'Ekasanu'      },
   { key: 'biaasanu',    emoji: '🍽', gu: 'બિયાસણું',        en: 'Biyasanu'     },
-  { key: 'ambil',       emoji: '🥣', gu: 'આંબિલ',           en: 'Ambil'        },
+  { key: 'tirth',      emoji: '🛕', gu: 'તીર્થ',            en: 'Tirth'        },
   { key: 'ayambil',    emoji: '🥣', gu: 'આયંબિલ',       en: 'Ayambil'      },
   { key: 'parking',     emoji: '🅿️', gu: 'પાર્કિંગ',        en: 'Parking'      },
 ];
@@ -108,7 +108,7 @@ export default function HomeScreen({ lang, setLang, onOpen, onAdmin }) {
     if (chips.has('boilWater'))   list = list.filter(b => b.facilities?.boilWater);
     if (chips.has('ekashnu'))     list = list.filter(b => b.facilities?.ekashnu);
     if (chips.has('biaasanu'))    list = list.filter(b => b.facilities?.biaasanu);
-    if (chips.has('ambil'))       list = list.filter(b => b.facilities?.ambil);
+    if (chips.has('tirth'))       list = list.filter(b => b.facilities?.tirth);
     if (chips.has('ayambil'))    list = list.filter(b => b.ayambilShalaEnabled);
     if (chips.has('parking'))     list = list.filter(b => b.facilities?.parking);
     if (city.trim()) {
